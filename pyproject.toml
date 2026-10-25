@@ -39,10 +39,10 @@ zmq-vision = "zmq_inference.cli.main:cli"
 zmq-inference = "zmq_inference.cli.main:cli"
 
 [project.urls]
-Homepage = "https://github.com/jamal-saeedi/zmq-vision-server"
-Repository = "https://github.com/jamal-saeedi/zmq-vision-server"
-Issues = "https://github.com/jamal-saeedi/zmq-vision-server/issues"
-Changelog = "https://github.com/jamal-saeedi/zmq-vision-server/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/jamal-saeedi/zmq-vision"
+Repository = "https://github.com/jamal-saeedi/zmq-vision"
+Issues = "https://github.com/jamal-saeedi/zmq-vision/issues"
+Changelog = "https://github.com/jamal-saeedi/zmq-vision/blob/main/CHANGELOG.md"
 
 [tool.setuptools.dynamic]
 version = {attr = "zmq_inference.__version__"}

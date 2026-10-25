@@ -1,9 +1,9 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/jamal-saeedi/zmq-vision-server/main/docs/assets/banner.svg" alt="ZMQ Vision — image models, one messaging interface" width="920">
+  <img src="https://raw.githubusercontent.com/jamal-saeedi/zmq-vision/main/docs/assets/banner.svg" alt="ZMQ Vision — image models, one messaging interface" width="920">
 </p>
 
 <p align="center">
-  <a href="https://github.com/jamal-saeedi/zmq-vision-server/actions/workflows/ci.yml"><img src="https://github.com/jamal-saeedi/zmq-vision-server/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/jamal-saeedi/zmq-vision/actions/workflows/ci.yml"><img src="https://github.com/jamal-saeedi/zmq-vision/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <img src="https://img.shields.io/badge/Python-3.10%E2%80%933.14-3776AB" alt="Python 3.10–3.14">
   <img src="https://img.shields.io/badge/PyZMQ-27.2-7C3AED" alt="PyZMQ 27.2">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-10B981" alt="MIT license"></a>
@@ -24,8 +24,8 @@ Built by [Jamal Saeedi](https://github.com/jamal-saeedi). This project demonstra
 Python 3.10 or newer; a virtual environment is recommended.
 
 ```bash
-git clone https://github.com/jamal-saeedi/zmq-vision-server.git
-cd zmq-vision-server
+git clone https://github.com/jamal-saeedi/zmq-vision.git
+cd zmq-vision
 python -m venv .venv
 # Linux / macOS
 source .venv/bin/activate
@@ -38,7 +38,7 @@ zmq-vision demo
 The demo starts a server on an available localhost TCP port, checks readiness, sends generated images through both clients, checks their responses, and shuts down. It downloads no weights and needs no GPU. Its backend ranks mean RGB intensity; it is **not a trained classifier**.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/jamal-saeedi/zmq-vision-server/main/docs/assets/demo.svg" alt="Captured terminal output from the working sync and async TCP demo" width="920">
+  <img src="https://raw.githubusercontent.com/jamal-saeedi/zmq-vision/main/docs/assets/demo.svg" alt="Captured terminal output from the working sync and async TCP demo" width="920">
 </p>
 
 The image is captured from a real run; timings vary by machine. Run `zmq-vision demo --json` for inspectable output or `zmq-vision doctor` for installed versions.
@@ -46,7 +46,7 @@ The image is captured from a real run; timings vary by machine. Run `zmq-vision 
 Install directly from GitHub without cloning:
 
 ```bash
-python -m pip install "git+https://github.com/jamal-saeedi/zmq-vision-server.git"
+python -m pip install "git+https://github.com/jamal-saeedi/zmq-vision.git"
 ```
 
 The distribution is named `zmq-vision`. PyPI publication is a separate release step; the source install above works before publication. Existing `zmq_inference` imports and the `zmq-inference` command remain supported. See [migration notes](docs/migration.md).
