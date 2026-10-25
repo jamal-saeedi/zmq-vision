@@ -60,3 +60,10 @@ desktop.ini
 *.pem
 *.key
 .claude/
+
+# Local agent state and native crash dumps
+.agents/
+.codex/
+.aws/
+/core
+/core.*

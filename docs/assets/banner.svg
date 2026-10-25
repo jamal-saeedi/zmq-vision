@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" role="img" aria-labelledby="title desc">
+<title id="title">ZMQ Vision</title><desc id="desc">Image models, one messaging interface. Sync and async clients connect to optional PyTorch, TensorFlow, or custom backends.</desc>
+<defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#0b1220"/><stop offset="1" stop-color="#172554"/></linearGradient></defs>
+<rect width="1200" height="360" rx="24" fill="url(#bg)"/>
+<g stroke="#263657" stroke-width="1" opacity=".55"><path d="M720 0v360m80-360v360m80-360v360m80-360v360m80-360v360m80-360v360M680 60h520M680 140h520M680 220h520M680 300h520"/></g>
+<text x="60" y="74" fill="#5eead4" font-family="sans-serif" font-size="14" letter-spacing="4">COMPUTER VISION / ZEROMQ</text>
+<text x="56" y="158" fill="#f8fafc" font-family="sans-serif" font-size="72" font-weight="700">ZMQ Vision</text>
+<text x="60" y="208" fill="#cbd5e1" font-family="sans-serif" font-size="24">Image models. One messaging interface.</text>
+<text x="60" y="277" fill="#94a3b8" font-family="sans-serif" font-size="17">Python library · sync + async · optional ML backends</text>
+<text x="60" y="315" fill="#64748b" font-family="sans-serif" font-size="14">BY JAMAL SAEEDI</text>
+<g fill="none" stroke="#5eead4" stroke-width="3"><rect x="766" y="95" width="116" height="116" rx="16"/><path d="M784 191l29-36 22 22 18-13 13 27z"/><circle cx="850" cy="122" r="9"/><path d="M890 152h74m-12-9 12 9-12 9"/><rect x="976" y="105" width="150" height="96" rx="14"/></g>
+<text x="1051" y="148" text-anchor="middle" fill="#f8fafc" font-family="sans-serif" font-size="19">MODEL</text>
+<text x="1051" y="176" text-anchor="middle" fill="#94a3b8" font-family="sans-serif" font-size="13">worker pool</text>
+<text x="824" y="245" text-anchor="middle" fill="#94a3b8" font-family="sans-serif" font-size="14">IMAGE</text>
+<text x="1051" y="245" text-anchor="middle" fill="#94a3b8" font-family="sans-serif" font-size="14">PREDICTIONS</text>
+</svg>

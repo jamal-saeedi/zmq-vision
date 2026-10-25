@@ -1,311 +1,234 @@
-# zmq-inference
+<p align="center">
+  <img src="https://raw.githubusercontent.com/jamal-saeedi/zmq-vision-server/main/docs/assets/banner.svg" alt="ZMQ Vision — image models, one messaging interface" width="920">
+</p>
 
-[![Python](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue)](https://www.python.org/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![Linting: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+<p align="center">
+  <a href="https://github.com/jamal-saeedi/zmq-vision-server/actions/workflows/ci.yml"><img src="https://github.com/jamal-saeedi/zmq-vision-server/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <img src="https://img.shields.io/badge/Python-3.10%E2%80%933.14-3776AB" alt="Python 3.10–3.14">
+  <img src="https://img.shields.io/badge/PyZMQ-27.2-7C3AED" alt="PyZMQ 27.2">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-10B981" alt="MIT license"></a>
+</p>
 
-**zmq-inference** is a high-performance ZMQ ROUTER/DEALER inference server and client library supporting both PyTorch (via [timm](https://github.com/huggingface/pytorch-image-models)) and TensorFlow/Keras backends for ImageNet image classification.
+# ZMQ Vision
 
----
+**Serve image models over ZeroMQ with the same synchronous, asynchronous, and command-line clients.**
 
-## Architecture
+A small Python library that separates model execution from messaging. Run an ImageNet classifier with PyTorch/timm or TensorFlow/Keras, or implement three methods to serve your own image model. The core package needs only PyZMQ, Pillow, and Click.
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                          CLIENT SIDE                            │
-│                                                                 │
-│   SyncClient / AsyncClient                                      │
-│   (ZMQ DEALER socket, unique identity per client)               │
-│         │  send_json(InferenceRequest)                          │
-│         │  recv_string(InferenceResponse)                       │
-└─────────┼───────────────────────────────────────────────────────┘
-          │  TCP  tcp://host:5576
-┌─────────┼───────────────────────────────────────────────────────┐
-│         ▼           SERVER SIDE                                 │
-│   ROUTER frontend (bind tcp://*:5576)                           │
-│         │  recv identity + payload                              │
-│         ▼                                                        │
-│   RequestHandler (Thread per request)                           │
-│         │  decode → preprocess → predict                        │
-│         ▼                                                        │
-│   DEALER backend (inproc://backend)                             │
-│         │  send identity + InferenceResponse JSON               │
-│         ▼                                                        │
-│   ROUTER frontend → TCP → Client                                │
-│                                                                 │
-│   Backends:  TorchInferenceServer  |  TFInferenceServer         │
-└─────────────────────────────────────────────────────────────────┘
-```
+Built by [Jamal Saeedi](https://github.com/jamal-saeedi). This project demonstrates transport design, bounded concurrency, model integration, Python packaging, and tests against real TCP sockets.
 
----
+[Quick start](#quick-start) · [Model backends](#use-a-trained-model) · [Python API](#python-api) · [Architecture](#architecture) · [Development](#development)
 
-## Quick Start
+## Quick start
+
+Python 3.10 or newer; a virtual environment is recommended.
 
 ```bash
-# 1. Clone
-git clone https://github.com/jamal-saeedi/zmq-inference-server-client-pytorch-tf.git
-cd zmq-inference-server-client-pytorch-tf
-
-# 2. Install with PyTorch backend
-pip install -e ".[torch,dev]"
-
-# 3. Start the server
-zmq-inference serve --backend torch --model mobilenetv2_100
-
-# 4. Run inference (in another terminal)
-zmq-inference infer sample.png
+git clone https://github.com/jamal-saeedi/zmq-vision-server.git
+cd zmq-vision-server
+python -m venv .venv
+# Linux / macOS
+source .venv/bin/activate
+# Windows PowerShell: .venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install .
+zmq-vision demo
 ```
 
----
+The demo starts a server on an available localhost TCP port, checks readiness, sends generated images through both clients, checks their responses, and shuts down. It downloads no weights and needs no GPU. Its backend ranks mean RGB intensity; it is **not a trained classifier**.
 
-## Installation
+<p align="center">
+  <img src="https://raw.githubusercontent.com/jamal-saeedi/zmq-vision-server/main/docs/assets/demo.svg" alt="Captured terminal output from the working sync and async TCP demo" width="920">
+</p>
 
-### PyTorch backend (recommended)
+The image is captured from a real run; timings vary by machine. Run `zmq-vision demo --json` for inspectable output or `zmq-vision doctor` for installed versions.
+
+Install directly from GitHub without cloning:
 
 ```bash
-pip install zmq-inference[torch]
+python -m pip install "git+https://github.com/jamal-saeedi/zmq-vision-server.git"
 ```
 
-### TensorFlow backend
+The distribution is named `zmq-vision`. PyPI publication is a separate release step; the source install above works before publication. Existing `zmq_inference` imports and the `zmq-inference` command remain supported. See [migration notes](docs/migration.md).
+
+## Use a trained model
+
+Choose one extra; neither ML framework is required by the core package.
+
+| Backend | Install from this checkout | Model | First run |
+| --- | --- | --- | --- |
+| Demo | `python -m pip install .` | Mean RGB intensity | Offline |
+| PyTorch | `python -m pip install ".[torch]"` | ImageNet-1k models from timm | Downloads weights |
+| TensorFlow | `python -m pip install ".[tf]"` | Keras MobileNet | Downloads weights |
 
 ```bash
-pip install zmq-inference[tf]
+# Terminal 1: PyTorch, CPU
+zmq-vision serve --backend torch --model mobilenetv2_100 --device cpu
+
+# Terminal 2
+zmq-vision health
+zmq-vision infer examples/sample.png
+zmq-vision infer examples/sample.png --async --json
 ```
 
-### Development (tests, linting, type checking)
+Or start TensorFlow with `zmq-vision serve --backend tf --device cpu`.
 
-```bash
-pip install zmq-inference[torch,dev]
-# or
-make install-torch
-```
+For a fully offline transport example, use `zmq-vision serve --backend demo`, then send any image. `--no-pretrained` is available for ML smoke tests; randomly initialized model predictions are not meaningful. Framework and model-weight licenses apply separately. CPU/GPU installation and Python support depend on the selected framework's wheels; use Python 3.12 for the tested ML configuration.
 
----
+## Python API
 
-## CLI Usage
-
-### Start the server
-
-```bash
-# PyTorch with MobileNetV2
-zmq-inference serve --backend torch --model mobilenetv2_100
-
-# TensorFlow on port 5577
-zmq-inference serve --backend tf --port 5577
-
-# PyTorch, force CPU
-zmq-inference serve --backend torch --device cpu
-
-# All options
-zmq-inference serve --backend torch \
-    --host "*" \
-    --port 5576 \
-    --model efficientnet_b0 \
-    --device auto \
-    --top-k 5
-```
-
-### Run inference
-
-```bash
-# Synchronous (default)
-zmq-inference infer path/to/image.jpg
-
-# Async client
-zmq-inference infer path/to/image.jpg --async
-
-# Remote server, show top-5
-zmq-inference infer image.jpg --host 10.0.0.5 --port 5576 --top-k 5
-```
-
-Example output:
-
-```
-Request ID : 3f9a1b2c-0d4e-4f5a-8b6c-7d8e9f0a1b2c
-Elapsed    : 23.4 ms
-Predictions:
-  1. tabby                                    0.68432
-  2. tiger cat                                0.19217
-  3. Egyptian cat                             0.07341
-```
-
-### Health check
-
-```bash
-zmq-inference health
-zmq-inference health --host 10.0.0.5 --timeout 3000
-```
-
----
-
-## Configuration
-
-All settings can be supplied via environment variables (or a `.env` file).
-
-| Variable | Default | Description |
-|---|---|---|
-| `ZMQ_HOST` | `*` | Server bind host |
-| `ZMQ_PORT` | `5576` | TCP port |
-| `ZMQ_MODEL` | `mobilenetv2_100` | timm model name (torch backend) |
-| `ZMQ_DEVICE` | `auto` | Compute device: `auto`, `cpu`, `cuda` |
-| `ZMQ_SERVER_HOST` | `localhost` | Client – server hostname |
-| `ZMQ_TIMEOUT_MS` | `30000` | Client receive timeout (ms) |
-
-Copy `.env.example` to `.env` and edit:
-
-```bash
-cp .env.example .env
-```
-
----
-
-## Python API Reference
-
-### Server
-
-```python
-from zmq_inference import ServerConfig
-from zmq_inference.server.torch_server import TorchInferenceServer
-
-config = ServerConfig(port=5576, model_name="mobilenetv2_100", top_k=3)
-server = TorchInferenceServer(config)
-server.start()
-server.join()  # block until stopped
-```
-
-### Synchronous client
+### Synchronous
 
 ```python
 from zmq_inference import ClientConfig
-from zmq_inference.client.sync_client import SyncClient
+from zmq_inference.client import SyncClient
 
-config = ClientConfig(host="localhost", port=5576, timeout_ms=10000)
-
-with SyncClient(config) as client:
-    response = client.infer("cat.jpg")
-    for pred in response.predictions:
-        print(f"{pred.label}: {pred.confidence:.4f}")
+with SyncClient(ClientConfig(host="127.0.0.1", port=5576, timeout_ms=5000)) as client:
+    assert client.ping().ok
+    response = client.infer("examples/sample.png")
+    if not response.ok:
+        raise RuntimeError(response.error)
+    for prediction in response.predictions:
+        print(prediction.label, prediction.confidence)
 ```
 
-### Async client
+### Asynchronous
 
 ```python
 import asyncio
 from zmq_inference.client.async_client import AsyncClient
 
+
 async def main():
     async with AsyncClient() as client:
-        response = await client.infer("cat.jpg")
+        response = await client.infer("examples/sample.png")
         print(response)
+
 
 asyncio.run(main())
 ```
 
-### Protocol dataclasses
+One async client serializes its exchanges so concurrent callers cannot consume each other's replies. Use multiple clients for concurrent server requests. A synchronous client belongs to the thread that connected it.
+
+### Your own backend
+
+Implement `load_model()`, `preprocess(image)`, and `predict(input)` on `BaseInferenceServer`. Transport, validation, error responses, queue limits, and lifecycle are provided. See the complete [custom backend example](examples/custom_backend.py).
 
 ```python
-from zmq_inference.core.protocol import InferenceRequest, InferenceResponse, Prediction
+from zmq_inference import ServerConfig
+from zmq_inference.server.demo_server import DemoInferenceServer
 
-req = InferenceRequest(payload=base64_str)
-print(req.to_json())
-
-resp = InferenceResponse.from_json(raw_json)
-print(resp.predictions[0].label, resp.elapsed_ms)
+server = DemoInferenceServer(ServerConfig(port=5576))
+server.start()
+try:
+    server.wait_until_ready(timeout=10)  # surfaces model-load and bind errors
+    server.join()
+except KeyboardInterrupt:
+    pass
+finally:
+    server.stop()
+    server.join()
 ```
 
-### Image utilities
+## Architecture
 
-```python
-from zmq_inference.utils.image import encode_image, decode_image
-
-b64 = encode_image("photo.jpg")        # from file path
-b64 = encode_image(pil_image)          # from PIL.Image
-img = decode_image(b64)                # returns PIL.Image (RGB)
+```mermaid
+flowchart LR
+    A[Sync client] --> D[DEALER sockets]
+    B[Async clients] --> D
+    C[CLI] --> D
+    D <-->|TCP · JSON · request IDs| R[ROUTER\nnetwork thread]
+    R --> Q[Bounded pending work]
+    Q --> W[Model worker pool]
+    W --> M{Backend}
+    M --> P[PyTorch / timm]
+    M --> T[TensorFlow / Keras]
+    M --> X[Demo / custom model]
+    X --> F[Completed responses]
+    P --> F
+    T --> F
+    F --> R
 ```
 
----
+- **Socket ownership:** only the network thread touches the server socket. Workers return results through futures.
+- **Bounded work:** one model worker and at most 16 accepted requests by default; overload returns an explicit busy response. Increase workers only for a thread-safe backend.
+- **Response correlation:** clients match request IDs and replace their socket after a timeout or cancellation. Late replies cannot be returned as the next request's result.
+- **Predictable lifecycle:** readiness means the model loaded and TCP bound. Shutdown stops admission, cancels queued work, and waits for active predictions.
+- **Model preprocessing:** PyTorch uses the model's timm data configuration; TensorFlow uses MobileNet preprocessing and bundled ImageNet labels.
+
+The earlier ROUTER/DEALER in-process proxy and thread-per-request design have been replaced. The client/server TCP connection still uses DEALER/ROUTER. [Protocol and limits](docs/architecture.md) cover delivery semantics and tradeoffs.
+
+## Configuration
+
+Explicit Python arguments or CLI options override environment defaults. `.env` files are not loaded automatically; `.env.example` documents variables you can export.
+
+| Variable | Default | Used by |
+| --- | --- | --- |
+| `ZMQ_HOST` | `127.0.0.1` | Server bind host |
+| `ZMQ_SERVER_HOST` | `127.0.0.1` | Client destination |
+| `ZMQ_PORT` | `5576` | Both |
+| `ZMQ_MODEL` | `mobilenetv2_100` | PyTorch model |
+| `ZMQ_DEVICE` | `auto` | `auto`, `cpu`, or `cuda` |
+| `ZMQ_TIMEOUT_MS` | `30000` | Client timeout per attempt |
+
+Use `zmq-vision serve --help` and `zmq-vision infer --help` for options. Python `ServerConfig` also exposes message and decoded-image limits: 8 MiB per frame and 16 million pixels by default. Oversized frames are disconnected by libzmq; the client reaches its timeout. `--top-k` on `infer` limits displayed results; `serve --top-k` controls how many predictions are returned.
+
+Defaults bind to localhost. For a trusted LAN, explicitly use `--host 0.0.0.0`; clients specify the server's address. This protocol has no built-in authentication or encryption. Use a secured private network or tunnel for remote traffic.
 
 ## Development
 
 ```bash
-# Install with all extras
-make install-torch
-
-# Run tests with coverage
-make test
-
-# Lint
-make lint
-
-# Auto-format
-make format
-
-# Type check
-make type-check
-
-# Clean build artifacts
-make clean
+python -m pip install -e ".[dev]"
+python -m pytest -m "not torch and not tf"
+ruff check .
+ruff format --check .
+python -m build
+python -m twine check dist/*
 ```
 
-### Project layout
+Optional real-model tests (CPU, random weights, no downloads):
 
-```
-zmq_inference/
-├── __init__.py
-├── server/
-│   ├── base.py          # Abstract BaseInferenceServer (ZMQ ROUTER/DEALER loop)
-│   ├── torch_server.py  # PyTorch/timm implementation
-│   └── tf_server.py     # TensorFlow/Keras implementation
-├── client/
-│   ├── base.py          # Abstract BaseInferenceClient
-│   ├── sync_client.py   # Synchronous polling client
-│   └── async_client.py  # Asyncio client
-├── core/
-│   ├── config.py        # ServerConfig, ClientConfig dataclasses
-│   ├── protocol.py      # InferenceRequest, InferenceResponse, Prediction
-│   └── logging.py       # Structured logging setup
-├── utils/
-│   ├── image.py         # encode_image, decode_image, preprocess_for_display
-│   └── labels.py        # load_imagenet_labels, get_label
-├── cli/
-│   └── main.py          # Click CLI: serve, infer, health
-└── data/
-    └── imagenet_classes.json
-tests/
-├── conftest.py
-├── test_protocol.py
-├── test_image_utils.py
-├── test_sync_client.py
-└── test_server.py
+```bash
+python -m pip install -e ".[torch,tf,dev]"
+python -m pytest tests/test_backends.py
+# Also download and exercise pretrained weights:
+ZMQ_VISION_TEST_PRETRAINED=1 python -m pytest tests/test_backends.py
 ```
 
----
+Core CI covers Python 3.10–3.14 on Linux, with additional Windows and macOS jobs. Separate jobs exercise both ML backends on Python 3.12. Distribution checks install a built wheel in a new environment and run the demo outside the checkout. See the [recorded validation](docs/validation.md), [contributing guide](CONTRIBUTING.md), and [release instructions](docs/releasing.md).
 
-## Legacy Scripts
+```text
+src/zmq_inference/        Installable library; legacy import name preserved
+  cli/                   serve, infer, health, demo, doctor
+  client/                Synchronous and asyncio transports
+  core/                  Configuration, protocol, logging
+  server/                Shared lifecycle and optional model backends
+  data/                  Bundled ImageNet labels
+  utils/                 Image serialization and resource loading
+examples/                Runnable custom backend and original sample image
+  legacy/                Archived 2024 scripts; separate wire protocol
+tests/                   Unit, real TCP, CLI, and optional ML tests
+docs/                    Architecture, migration, release guide, visual assets
+.github/workflows/       Checks, tagged GitHub releases, manual PyPI publishing
+```
 
-The original flat scripts are preserved for backward compatibility:
+## Scope and limitations
 
-| Script | Description |
-|---|---|
-| `inference_server_torch.py` | Original PyTorch server |
-| `inference_server_tf.py` | Original TensorFlow server |
-| `client_async.py` | Original asyncio client |
-| `client_loop.py` | Original sync polling client |
+This is an image inference transport library. It does not train models, batch requests, guarantee exactly-once execution, or provide multi-host scheduling. Retries can repeat inference; treat custom predictors as side-effect free. Health checks share worker admission and may time out under load. A hung model call can delay shutdown because Python cannot safely kill its thread.
 
----
+A language model is not included: text generation needs a text protocol, token limits, and different response semantics. Adding a small LLM without that design would dilute the working vision interface. The backend extension point supports future image-oriented models without making their dependencies mandatory.
 
-## Contributing
+## Troubleshooting
 
-1. Fork the repository.
-2. Create a feature branch: `git checkout -b feature/my-feature`.
-3. Make your changes and add tests.
-4. Ensure `make test lint format-check type-check` all pass.
-5. Submit a pull request.
-
----
+| Symptom | Check |
+| --- | --- |
+| Timeout | `zmq-vision health --host HOST --port PORT`; confirm server readiness, firewall, and model load |
+| Missing backend | Install the corresponding `[torch]` or `[tf]` extra |
+| Address already in use | Choose another `--port`; startup failures return a nonzero exit status |
+| Unexpected model result | Use pretrained weights, an ImageNet-1k model, and a suitable input image |
+| Runtime / GPU failure | Run `zmq-vision doctor`, try `--device cpu`, and verify framework installation |
+| Server busy | Reduce concurrent clients or size `--max-pending` for your deployment |
 
 ## License
 
-This project is licensed under the MIT License.
-
+[MIT](LICENSE). Original sample image and ImageNet label mapping are retained from this repository's earlier versions; their original upstream provenance was not recorded. See [asset notes](docs/assets.md).

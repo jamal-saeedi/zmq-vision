@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.0] - 2026-10-25
+
+### Added
+
+- ZMQ Vision branding and `zmq-vision` distribution/CLI, retaining `zmq_inference` imports.
+- Download-free TCP demo, readiness protocol, environment diagnostics, and JSON CLI output.
+- Bounded model workers and admission, validation limits, overload responses, and startup failure reporting.
+- Real TCP, concurrent client, timeout, cancellation, shutdown, CLI, and optional real-model tests.
+- CI across supported Python versions, distribution checks, tagged GitHub releases, and manual OIDC PyPI publishing.
+- Architecture, migration, contribution, and release guides; captured demo visualization; missing MIT license file.
+
+### Changed
+
+- Moved library to `src/`, sample to `examples/`, and original scripts to `examples/legacy/`.
+- Consolidated metadata into `pyproject.toml`; removed obsolete GPU requirements and duplicate label data.
+- Updated dependency ranges to current supported releases, with ML frameworks kept optional.
+- Applied model-specific timm transforms and direct TensorFlow/Keras inference.
+- Made localhost binding and one client attempt the defaults; health no longer performs inference.
+- Replaced request threads and the in-process proxy with bounded futures and one socket-owning thread.
+- Reset client sockets after timeout/cancellation and correlate every response.
+
+See [migration notes](docs/migration.md) for API and default changes.
+
+---
+
 ## [0.2.0] - 2026-05-24
 
 ### Changed

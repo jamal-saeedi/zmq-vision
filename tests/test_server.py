@@ -1,162 +1,75 @@
-"""Tests for zmq_inference.server.base.RequestHandler and BaseInferenceServer."""
-
-from __future__ import annotations
+"""Regression tests for request validation and server lifecycle."""
 
 import json
-from typing import Any, List
-from unittest.mock import MagicMock, patch
 
 import pytest
-from PIL import Image
 
-from zmq_inference.core.config import ServerConfig
-from zmq_inference.core.protocol import InferenceResponse, Prediction
-from zmq_inference.server.base import BaseInferenceServer, RequestHandler
-
-
-# ---------------------------------------------------------------------------
-# Concrete stub server for testing (no real model)
-# ---------------------------------------------------------------------------
+from zmq_inference import ServerConfig
+from zmq_inference.core.protocol import InferenceRequest
+from zmq_inference.server.demo_server import DemoInferenceServer
 
 
-class StubServer(BaseInferenceServer):
-    """Minimal server stub that returns canned predictions without a real model."""
-
-    def __init__(self, config: ServerConfig, canned: List[Prediction]) -> None:
-        super().__init__(config)
-        self._canned = canned
-
-    def load_model(self) -> None:
-        pass  # no-op
-
-    def preprocess(self, img: Image.Image) -> Any:
-        return img  # pass-through
-
-    def predict(self, tensor: Any) -> List[Prediction]:
-        return self._canned
+def test_process_request(tiny_image_b64):
+    server = DemoInferenceServer()
+    result = server.process_request(
+        InferenceRequest(tiny_image_b64, "preserved").to_json().encode()
+    )
+    assert result.ok
+    assert result.request_id == "preserved"
+    assert result.predictions[0].label == "blue"
+    assert result.image
+    assert result.elapsed_ms >= 0
 
 
-# ---------------------------------------------------------------------------
-# RequestHandler tests
-# ---------------------------------------------------------------------------
+@pytest.mark.parametrize(
+    "raw",
+    [
+        b"{",
+        b"[]",
+        b"null",
+        b"1",
+        b'"text"',
+        b"\xff",
+        b"{}",
+        b'{"payload":123}',
+        b'{"payload":"not base64!!!"}',
+    ],
+)
+def test_invalid_requests_are_error_responses(raw):
+    assert not DemoInferenceServer().process_request(raw).ok
 
 
-class TestRequestHandler:
-    def _make_handler(
-        self,
-        server: StubServer,
-        raw_msg: dict,
-        client_id: bytes = b"client-1",
-    ) -> RequestHandler:
-        ctx = MagicMock()
-        worker_socket = MagicMock()
-        ctx.socket.return_value = worker_socket
-        handler = RequestHandler(ctx, client_id, raw_msg, server)
-        return handler
-
-    def test_process_returns_valid_response(
-        self,
-        server_config: ServerConfig,
-        tiny_image_b64: str,
-    ) -> None:
-        canned = [Prediction(label="cat", confidence=0.99)]
-        server = StubServer(server_config, canned)
-
-        raw_msg = {
-            "payload": tiny_image_b64,
-            "request_id": "test-123",
-            "metadata": {},
-        }
-
-        # Directly call the core logic via run() but intercept the socket send.
-        ctx = MagicMock()
-        worker_socket = MagicMock()
-        ctx.socket.return_value = worker_socket
-
-        handler = RequestHandler(ctx, b"client-1", raw_msg, server)
-        handler.run()  # Runs in-thread (synchronous since Thread.start not called)
-
-        # Verify the worker sent back a response.
-        assert worker_socket.send.call_count >= 1  # identity frame
-        assert worker_socket.send_string.call_count == 1
-
-        sent_json: str = worker_socket.send_string.call_args[0][0]
-        response = InferenceResponse.from_json(sent_json)
-        assert response.request_id == "test-123"
-        assert response.ok
-        assert response.predictions[0].label == "cat"
-        assert response.elapsed_ms >= 0
-
-    def test_process_error_returns_error_response(
-        self,
-        server_config: ServerConfig,
-    ) -> None:
-        """A malformed payload should yield an InferenceResponse with error set."""
-
-        class FailingServer(StubServer):
-            def preprocess(self, img: Image.Image) -> Any:
-                raise ValueError("simulated preprocess failure")
-
-        server = FailingServer(server_config, [])
-        ctx = MagicMock()
-        worker_socket = MagicMock()
-        ctx.socket.return_value = worker_socket
-
-        raw_msg = {
-            "payload": "notvalidbase64!!!",
-            "request_id": "bad-req",
-            "metadata": {},
-        }
-
-        handler = RequestHandler(ctx, b"client-bad", raw_msg, server)
-        handler.run()
-
-        sent_json: str = worker_socket.send_string.call_args[0][0]
-        response = InferenceResponse.from_json(sent_json)
-        assert not response.ok
-        assert response.error is not None
-
-    def test_process_preserves_request_id(
-        self,
-        server_config: ServerConfig,
-        tiny_image_b64: str,
-    ) -> None:
-        canned = [Prediction(label="dog", confidence=0.8)]
-        server = StubServer(server_config, canned)
-        ctx = MagicMock()
-        worker_socket = MagicMock()
-        ctx.socket.return_value = worker_socket
-
-        raw_msg = {
-            "payload": tiny_image_b64,
-            "request_id": "preserved-id-xyz",
-            "metadata": {},
-        }
-
-        handler = RequestHandler(ctx, b"c", raw_msg, server)
-        handler.run()
-
-        sent_json: str = worker_socket.send_string.call_args[0][0]
-        response = InferenceResponse.from_json(sent_json)
-        assert response.request_id == "preserved-id-xyz"
+def test_errors_keep_request_id():
+    raw = json.dumps({"request_id": "bad-image", "payload": "not base64!!!"}).encode()
+    response = DemoInferenceServer().process_request(raw)
+    assert not response.ok
+    assert response.request_id == "bad-image"
 
 
-# ---------------------------------------------------------------------------
-# BaseInferenceServer lifecycle tests
-# ---------------------------------------------------------------------------
+def test_message_size_limit():
+    server = DemoInferenceServer(ServerConfig(max_message_bytes=20))
+    assert "size limit" in server.process_request(b" " * 21).error
 
 
-class TestBaseInferenceServer:
-    def test_stop_sets_flag(self, server_config: ServerConfig) -> None:
-        server = StubServer(server_config, [])
-        assert not server.stopped()
-        server.stop()
-        assert server.stopped()
+def test_pixel_limit(tiny_image_b64):
+    server = DemoInferenceServer(ServerConfig(max_image_pixels=1))
+    raw = InferenceRequest(tiny_image_b64).to_json().encode()
+    assert "pixel limit" in server.process_request(raw).error
 
-    def test_is_daemon_thread(self, server_config: ServerConfig) -> None:
-        server = StubServer(server_config, [])
-        assert server.daemon is True
 
-    def test_config_stored(self, server_config: ServerConfig) -> None:
-        server = StubServer(server_config, [])
-        assert server.config is server_config
+def test_ping_skips_model():
+    class NoInference(DemoInferenceServer):
+        def predict(self, tensor):
+            raise AssertionError("ping must not run inference")
+
+    response = NoInference().process_request(InferenceRequest(operation="ping").to_json().encode())
+    assert response.ok
+    assert response.predictions == []
+    assert response.image == ""
+
+
+def test_stop_flag():
+    server = DemoInferenceServer()
+    assert not server.stopped()
+    server.stop()
+    assert server.stopped()

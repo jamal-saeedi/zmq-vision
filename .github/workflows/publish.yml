@@ -1,0 +1,60 @@
+name: Publish to PyPI
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing GitHub release tag to publish, for example v0.3.0'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: pypi
+      url: https://pypi.org/project/zmq-vision/
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+      - name: Validate release tag
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: python -c "import os,re; assert re.fullmatch(r'v[0-9]+\.[0-9]+\.[0-9]+', os.environ['RELEASE_TAG']), 'Expected a stable vX.Y.Z tag'"
+      - name: Download released distributions
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: gh release download "$RELEASE_TAG" --pattern '*.whl' --pattern '*.tar.gz' --dir dist
+      - name: Verify metadata
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          python - <<'PY'
+          import email, os, pathlib, tarfile, zipfile
+          paths = list(pathlib.Path('dist').iterdir())
+          assert len(paths) == 2
+          for path in paths:
+              if path.suffix == '.whl':
+                  with zipfile.ZipFile(path) as archive:
+                      name, = [n for n in archive.namelist() if n.endswith('.dist-info/METADATA')]
+                      raw = archive.read(name)
+              else:
+                  with tarfile.open(path) as archive:
+                      name, = [n for n in archive.getnames() if n.count('/') == 1 and n.endswith('/PKG-INFO')]
+                      raw = archive.extractfile(name).read()
+              metadata = email.message_from_bytes(raw)
+              assert metadata['Name'] == 'zmq-vision'
+              assert 'v' + metadata['Version'] == os.environ['RELEASE_TAG']
+          PY
+      - name: Publish through PyPI Trusted Publishing
+        uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3

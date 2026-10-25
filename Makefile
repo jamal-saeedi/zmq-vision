@@ -1,47 +1,25 @@
-.PHONY: install install-torch install-tf test lint format type-check clean help
+PYTHON ?= python
 
-## install: Install core + dev dependencies (no ML backend)
+.PHONY: install install-torch install-tf test test-fast lint format format-check build check-dist demo
 install:
-	pip install -e ".[dev]"
-
-## install-torch: Install PyTorch backend + dev dependencies
+	$(PYTHON) -m pip install -e '.[dev]'
 install-torch:
-	pip install -e ".[torch,dev]"
-
-## install-tf: Install TensorFlow backend + dev dependencies
+	$(PYTHON) -m pip install -e '.[torch,dev]'
 install-tf:
-	pip install -e ".[tf,dev]"
-
-## test: Run the full test suite with coverage
+	$(PYTHON) -m pip install -e '.[tf,dev]'
 test:
-	pytest tests/ -v --cov=zmq_inference --cov-report=term-missing
-
-## test-fast: Run tests without coverage (faster iteration)
+	$(PYTHON) -m pytest --cov=zmq_inference --cov-report=term-missing
 test-fast:
-	pytest tests/ -v -x
-
-## lint: Run ruff linter on package and tests
+	$(PYTHON) -m pytest -m 'not torch and not tf' -q
 lint:
-	ruff check zmq_inference/ tests/
-
-## format: Auto-format code with black
+	$(PYTHON) -m ruff check .
 format:
-	black zmq_inference/ tests/
-
-## format-check: Verify formatting without modifying files
+	$(PYTHON) -m ruff format .
 format-check:
-	black --check zmq_inference/ tests/
-
-## type-check: Run mypy static type analysis
-type-check:
-	mypy zmq_inference/
-
-## clean: Remove build artifacts, caches, and generated files
-clean:
-	find . -type d -name __pycache__ | xargs rm -rf
-	find . -type f -name "*.pyc" -delete
-	rm -rf .pytest_cache .mypy_cache .ruff_cache dist build *.egg-info htmlcov coverage.xml .coverage
-
-## help: Show this help message
-help:
-	@grep -E '^## ' Makefile | sed 's/## //'
+	$(PYTHON) -m ruff format --check .
+build:
+	$(PYTHON) -m build
+check-dist:
+	$(PYTHON) -m twine check dist/*
+demo:
+	$(PYTHON) -m zmq_inference demo

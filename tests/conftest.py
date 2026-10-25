@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-import io
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import numpy as np
 import pytest
@@ -12,7 +11,6 @@ from PIL import Image
 from zmq_inference.core.config import ClientConfig, ServerConfig
 from zmq_inference.core.protocol import InferenceRequest, InferenceResponse, Prediction
 from zmq_inference.utils.image import encode_image
-
 
 # ---------------------------------------------------------------------------
 # Configuration fixtures
@@ -41,7 +39,7 @@ def tiny_pil_image() -> Image.Image:
     """A 4x4 solid-blue RGB PIL image for fast tests."""
     arr = np.zeros((4, 4, 3), dtype=np.uint8)
     arr[:, :, 2] = 200  # blue channel
-    return Image.fromarray(arr, mode="RGB")
+    return Image.fromarray(arr)
 
 
 @pytest.fixture()

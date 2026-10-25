@@ -8,7 +8,6 @@ import pytest
 
 from zmq_inference.core.protocol import InferenceRequest, InferenceResponse, Prediction
 
-
 # ---------------------------------------------------------------------------
 # Prediction
 # ---------------------------------------------------------------------------
@@ -126,3 +125,27 @@ class TestInferenceResponse:
         )
         assert resp.error is None
         assert resp.ok is True
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        None,
+        [],
+        1,
+        {"payload": []},
+        {"payload": "x", "metadata": []},
+        {"payload": "x", "request_id": 1},
+        {"payload": "x", "request_id": ""},
+        {"payload": "x", "request_id": "x" * 129},
+        {"payload": "x", "operation": "unknown"},
+    ],
+)
+def test_invalid_protocol_fields(data):
+    with pytest.raises(ValueError):
+        InferenceRequest.from_dict(data)
+
+
+def test_ping_roundtrip():
+    request = InferenceRequest(operation="ping")
+    assert InferenceRequest.from_json(request.to_json()).operation == "ping"
