@@ -14,6 +14,7 @@ Verified locally on 2026-10-25 with Linux / CPython 3.12.3. The installed packag
 
 - 98 tests passed, including pretrained and random-weight MobileNet inference through both ML backends. Coverage: 92% across 779 executable statements.
 - Real TCP tests cover concurrent clients, response IDs, retries, stale replies, async cancellation, invalid frames, invalid images, admission limits, startup/bind failures, and draining running work on shutdown.
+- The exact GitHub wheel and source archive were published to PyPI as `zmq-vision==0.3.0`; registry SHA-256 digests matched both release artifacts. A fresh install from PyPI passed the TCP demo and bundled-label checks without ML frameworks.
 - Both distributions passed `twine check`. The wheel was installed into a fresh environment and tested from outside the checkout, including bundled labels, both CLI names, and the sync/async demo. NumPy and ML frameworks were absent from that core environment.
 - Ruff lint and format checks passed. Source distribution contents, workflow YAML and embedded Python, local documentation links, and credential patterns were checked. The SVGs were rendered and visually inspected.
 

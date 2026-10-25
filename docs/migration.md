@@ -1,6 +1,6 @@
 # Migrating to 0.3
 
-The project is now **ZMQ Vision**, distribution `zmq-vision`. Install from this repository or a built wheel until it is published on PyPI. Do not install an unrelated package with a similar name.
+The project is now **ZMQ Vision**, distribution `zmq-vision`. Install from [PyPI](https://pypi.org/project/zmq-vision/) with `python -m pip install zmq-vision`, from this repository, or from a release wheel.
 
 Existing `zmq_inference` Python imports and `zmq-inference` CLI command remain available. `zmq-vision` is the preferred CLI name. The package moved into `src/`; editable installation is required for local development. `requirements.txt` now delegates to project metadata instead of pinning obsolete GPU packages.
 

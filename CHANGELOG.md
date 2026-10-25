@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Published `zmq-vision` 0.3.0 on PyPI with matching GitHub release artifacts.
 - ZMQ Vision branding and `zmq-vision` distribution/CLI, retaining `zmq_inference` imports.
 - Download-free TCP demo, readiness protocol, environment diagnostics, and JSON CLI output.
 - Bounded model workers and admission, validation limits, overload responses, and startup failure reporting.

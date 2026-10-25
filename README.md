@@ -3,6 +3,7 @@
 </p>
 
 <p align="center">
+  <a href="https://pypi.org/project/zmq-vision/"><img src="https://img.shields.io/pypi/v/zmq-vision" alt="PyPI version"></a>
   <a href="https://github.com/jamal-saeedi/zmq-vision/actions/workflows/ci.yml"><img src="https://github.com/jamal-saeedi/zmq-vision/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <img src="https://img.shields.io/badge/Python-3.10%E2%80%933.14-3776AB" alt="Python 3.10–3.14">
   <img src="https://img.shields.io/badge/PyZMQ-27.2-7C3AED" alt="PyZMQ 27.2">
@@ -24,14 +25,12 @@ Built by [Jamal Saeedi](https://github.com/jamal-saeedi). This project demonstra
 Python 3.10 or newer; a virtual environment is recommended.
 
 ```bash
-git clone https://github.com/jamal-saeedi/zmq-vision.git
-cd zmq-vision
 python -m venv .venv
 # Linux / macOS
 source .venv/bin/activate
 # Windows PowerShell: .venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
-python -m pip install .
+python -m pip install zmq-vision
 zmq-vision demo
 ```
 
@@ -49,17 +48,19 @@ Install directly from GitHub without cloning:
 python -m pip install "git+https://github.com/jamal-saeedi/zmq-vision.git"
 ```
 
-The distribution is named `zmq-vision`. PyPI publication is a separate release step; the source install above works before publication. Existing `zmq_inference` imports and the `zmq-inference` command remain supported. See [migration notes](docs/migration.md).
+The distribution is published on [PyPI as `zmq-vision`](https://pypi.org/project/zmq-vision/). Existing `zmq_inference` imports and the `zmq-inference` command remain supported. See [migration notes](docs/migration.md).
 
 ## Use a trained model
 
 Choose one extra; neither ML framework is required by the core package.
 
-| Backend | Install from this checkout | Model | First run |
+| Backend | Install from PyPI | Model | First run |
 | --- | --- | --- | --- |
-| Demo | `python -m pip install .` | Mean RGB intensity | Offline |
-| PyTorch | `python -m pip install ".[torch]"` | ImageNet-1k models from timm | Downloads weights |
-| TensorFlow | `python -m pip install ".[tf]"` | Keras MobileNet | Downloads weights |
+| Demo | `python -m pip install zmq-vision` | Mean RGB intensity | Offline |
+| PyTorch | `python -m pip install "zmq-vision[torch]"` | ImageNet-1k models from timm | Downloads weights |
+| TensorFlow | `python -m pip install "zmq-vision[tf]"` | Keras MobileNet | Downloads weights |
+
+The examples below use `examples/sample.png` from a source checkout; substitute your own image path when installing from PyPI.
 
 ```bash
 # Terminal 1: PyTorch, CPU
@@ -178,6 +179,8 @@ Defaults bind to localhost. For a trusted LAN, explicitly use `--host 0.0.0.0`; 
 ## Development
 
 ```bash
+git clone https://github.com/jamal-saeedi/zmq-vision.git
+cd zmq-vision
 python -m pip install -e ".[dev]"
 python -m pytest -m "not torch and not tf"
 ruff check .
