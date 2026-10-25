@@ -25,4 +25,6 @@ ZMQ_VISION_TEST_PRETRAINED=1 OMP_NUM_THREADS=2 python -m pytest --cov=zmq_infere
 
 Build isolation on this machine used `python -m build --installer uv` because its system Python lacks `ensurepip`. Standard `python -m build` works with a Python installation that includes virtual-environment support.
 
+A subprocess smoke check also passed for all three CLI server backends: readiness, health, sync/async image inference, and SIGTERM shutdown. Windows CI exposed the missing Proactor selector bridge; the package now declares Tornado for Windows only.
+
 GitHub CI independently checks the supported Python matrix and additional operating systems; local results above do not establish Windows or macOS behavior. GPU execution, classification accuracy on a benchmark, load capacity, and hard shutdown of hung native model code were not measured.

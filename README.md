@@ -13,7 +13,7 @@
 
 **Serve image models over ZeroMQ with the same synchronous, asynchronous, and command-line clients.**
 
-A small Python library that separates model execution from messaging. Run an ImageNet classifier with PyTorch/timm or TensorFlow/Keras, or implement three methods to serve your own image model. The core package needs only PyZMQ, Pillow, and Click.
+A small Python library that separates model execution from messaging. Run an ImageNet classifier with PyTorch/timm or TensorFlow/Keras, or implement three methods to serve your own image model. The core package uses PyZMQ, Pillow, and Click, plus a Windows-only Tornado bridge for asyncio.
 
 Built by [Jamal Saeedi](https://github.com/jamal-saeedi). This project demonstrates transport design, bounded concurrency, model integration, Python packaging, and tests against real TCP sockets.
 

@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Moved library to `src/`, sample to `examples/`, and original scripts to `examples/legacy/`.
 - Consolidated metadata into `pyproject.toml`; removed obsolete GPU requirements and duplicate label data.
 - Updated dependency ranges to current supported releases, with ML frameworks kept optional.
+- Included the Windows-only Tornado selector bridge required by PyZMQ asyncio.
 - Applied model-specific timm transforms and direct TensorFlow/Keras inference.
 - Made localhost binding and one client attempt the defaults; health no longer performs inference.
 - Replaced request threads and the in-process proxy with bounded futures and one socket-owning thread.

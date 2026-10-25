@@ -48,6 +48,8 @@ A startup timeout limits waiting for readiness, not the model-loading operation 
 
 ## Client semantics
 
+On Windows, the platform-specific Tornado dependency supplies the selector bridge required by PyZMQ on the default Proactor event loop. Other platforms do not need that dependency.
+
 A synchronous client can only be used and closed in its connecting thread. Async clients belong to one event loop and serialize exchanges under a lock. Use separate clients for parallel work. Connection and cleanup operations are idempotent.
 
 Every attempt has a network deadline, including send time. The default is one attempt. `ClientConfig.max_retries` is the total number of attempts, retained from the older API. On timeout or async cancellation, the old socket closes with zero linger and the next attempt gets a fresh routing identity. Clients also discard responses for other request IDs.
@@ -65,6 +67,7 @@ Text generation is outside this protocol. A future LLM backend would need explic
 ## Upstream references
 
 - [ZeroMQ thread-safety rules](https://zeromq.github.io/libzmq/zmq.html): contexts may be shared; ordinary sockets require thread ownership.
+- [PyZMQ asyncio on Windows](https://github.com/zeromq/pyzmq/issues/1830): the selector bridge supports the default Proactor loop.
 - [PyZMQ releases](https://pypi.org/project/pyzmq/): PyZMQ and libzmq have separate versions. `zmq-vision doctor` reports both.
 - [timm data configuration](https://huggingface.co/docs/timm/main/en/reference/data): model-specific evaluation transforms.
 - [Keras MobileNet](https://keras.io/api/applications/mobilenet/): preprocessing and model constraints.
