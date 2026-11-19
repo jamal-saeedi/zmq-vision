@@ -7,6 +7,7 @@ import importlib.metadata
 import json
 import platform
 import signal
+from pathlib import Path
 
 import click
 import zmq
@@ -14,7 +15,7 @@ import zmq
 from zmq_inference import __version__
 from zmq_inference.core.config import ClientConfig, ServerConfig
 from zmq_inference.core.logging import setup_logging
-from zmq_inference.core.protocol import InferenceResponse
+from zmq_inference.core.protocol import DEFAULT_MAX_TOKENS, MAX_GENERATION_TOKENS, InferenceResponse
 
 
 class VisionGroup(click.Group):
@@ -34,7 +35,7 @@ class VisionGroup(click.Group):
     type=click.Choice(["DEBUG", "INFO", "WARNING", "ERROR"], case_sensitive=False),
 )
 def cli(log_level: str) -> None:
-    """ZMQ Vision — serve image models and use sync or async clients."""
+    """Serve image and text models over ZeroMQ."""
     setup_logging(log_level)
 
 
@@ -44,11 +45,23 @@ def _config(cls, **values):
 
 @cli.command("serve")
 @click.option(
-    "--backend", default="demo", show_default=True, type=click.Choice(["demo", "torch", "tf"])
+    "--backend",
+    default="demo",
+    show_default=True,
+    type=click.Choice(["demo", "torch", "tf", "llm"]),
 )
 @click.option("--host", help="Bind host; defaults to ZMQ_HOST or 127.0.0.1.")
 @click.option("--port", type=click.IntRange(0, 65535), help="Bind port; zero selects a free port.")
 @click.option("--model", help="1000-class timm model (torch only).")
+@click.option(
+    "--model-path",
+    type=click.Path(dir_okay=False, path_type=Path),
+    help="Local ChatML-compatible GGUF weights (llm only).",
+)
+@click.option(
+    "--context-tokens", type=click.IntRange(256, 4096), help="LLM context size (default: 2048)."
+)
+@click.option("--threads", type=click.IntRange(1), help="LLM CPU threads (default: 2).")
 @click.option("--device", type=click.Choice(["auto", "cpu", "cuda"]))
 @click.option("--top-k", default=3, type=click.IntRange(1, 1000), show_default=True)
 @click.option(
@@ -64,10 +77,23 @@ def _config(cls, **values):
     "--no-pretrained", is_flag=True, help="Random model weights for offline smoke tests only."
 )
 def serve_cmd(
-    backend, host, port, model, device, top_k, workers, max_pending, startup_timeout, no_pretrained
+    backend,
+    host,
+    port,
+    model,
+    model_path,
+    context_tokens,
+    threads,
+    device,
+    top_k,
+    workers,
+    max_pending,
+    startup_timeout,
+    no_pretrained,
 ):
-    """Run a server. Demo requires no model download; torch/tf require extras."""
+    """Run one backend. Torch, TensorFlow and LLM require separate extras."""
     from zmq_inference.server.demo_server import DemoInferenceServer
+    from zmq_inference.server.llm_server import LLMInferenceServer
     from zmq_inference.server.tf_server import TFInferenceServer
     from zmq_inference.server.torch_server import TorchInferenceServer
 
@@ -82,10 +108,29 @@ def serve_cmd(
         max_pending_requests=max_pending,
         pretrained=not no_pretrained,
     )
-    # ML modules defer their optional dependency imports until load_model().
-    server = {"demo": DemoInferenceServer, "torch": TorchInferenceServer, "tf": TFInferenceServer}[
-        backend
-    ](config)
+    if backend == "llm":
+        if model_path is None:
+            raise click.UsageError("--backend llm requires --model-path")
+        if no_pretrained:
+            raise click.UsageError("--backend llm requires GGUF weights")
+        server = _config(
+            LLMInferenceServer,
+            config=config,
+            model_path=model_path,
+            context_tokens=context_tokens,
+            threads=threads,
+        )
+    else:
+        if model_path is not None or context_tokens is not None or threads is not None:
+            raise click.UsageError(
+                "--model-path, --context-tokens and --threads require --backend llm"
+            )
+        # ML modules defer their optional dependency imports until load_model().
+        server = {
+            "demo": DemoInferenceServer,
+            "torch": TorchInferenceServer,
+            "tf": TFInferenceServer,
+        }[backend](config)
     previous = {}
 
     def shutdown(_signal, _frame):
@@ -162,6 +207,43 @@ def _print_response(response: InferenceResponse, top_k: int) -> None:
         click.echo(f"  {index}. {prediction.label:40s} {prediction.confidence:.5f}")
 
 
+@cli.command("generate")
+@click.argument("prompt")
+@click.option("--host", help="Server hostname.")
+@click.option("--port", type=click.IntRange(1, 65535))
+@click.option("--timeout", type=click.IntRange(1), help="Per-attempt timeout in milliseconds.")
+@click.option("--retries", default=1, type=click.IntRange(1), show_default=True)
+@click.option(
+    "--max-tokens",
+    default=DEFAULT_MAX_TOKENS,
+    type=click.IntRange(1, MAX_GENERATION_TOKENS),
+    show_default=True,
+)
+@click.option("--async", "use_async", is_flag=True, help="Use the asyncio client.")
+@click.option("--json", "as_json", is_flag=True, help="Include request ID and token usage.")
+def generate_cmd(prompt, host, port, timeout, retries, max_tokens, use_async, as_json):
+    """Send a single prompt to a local text server."""
+    config = _config(ClientConfig, host=host, port=port, timeout_ms=timeout, max_retries=retries)
+    if use_async:
+        from zmq_inference.client.async_client import AsyncClient
+
+        async def run():
+            async with AsyncClient(config) as client:
+                return await client.generate(prompt, max_tokens=max_tokens)
+
+        response = asyncio.run(run())
+    else:
+        from zmq_inference.client.sync_client import SyncClient
+
+        with SyncClient(config) as client:
+            response = client.generate(prompt, max_tokens=max_tokens)
+    if not response.ok:
+        raise click.ClickException(f"Server error: {response.error}")
+    if response.generation is None:
+        raise click.ClickException("Server did not return a generation")
+    click.echo(response.to_json() if as_json else response.generation.text)
+
+
 @cli.command("health")
 @click.option("--host")
 @click.option("--port", type=click.IntRange(1, 65535))
@@ -209,7 +291,15 @@ def doctor_cmd():
         "pyzmq": zmq.pyzmq_version(),
         "libzmq": zmq.zmq_version(),
     }
-    for package in ("Pillow", "click", "torch", "torchvision", "timm", "tensorflow"):
+    for package in (
+        "Pillow",
+        "click",
+        "torch",
+        "torchvision",
+        "timm",
+        "tensorflow",
+        "llama-cpp-python",
+    ):
         try:
             versions[package] = importlib.metadata.version(package)
         except importlib.metadata.PackageNotFoundError:

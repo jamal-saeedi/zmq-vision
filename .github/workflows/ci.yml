@@ -35,7 +35,7 @@ jobs:
           python-version: ${{ matrix.python }}
           cache: pip
       - run: python -m pip install -e ".[dev]"
-      - run: python -m pytest -x -m "not torch and not tf"
+      - run: python -m pytest -x -m "not torch and not tf and not llm"
       - run: python -m zmq_inference demo
 
   quality:
@@ -88,3 +88,25 @@ jobs:
         with:
           name: distributions
           path: dist/*
+
+  llm:
+    name: Model / CPU GGUF
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CMAKE_BUILD_PARALLEL_LEVEL: '2'
+      OMP_NUM_THREADS: '2'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install -e ".[llm,dev]"
+      - name: Verify the pinned GGUF and exercise it over TCP
+        run: |
+          export ZMQ_VISION_GGUF="$RUNNER_TEMP/smollm2.gguf"
+          curl -fL --retry 3 -o "$ZMQ_VISION_GGUF" \
+            https://huggingface.co/bartowski/SmolLM2-135M-Instruct-GGUF/resolve/09816acd5d99df7be770d85ea30822623dab342c/SmolLM2-135M-Instruct-Q4_K_M.gguf
+          echo "2e8040ceae7815abe0dcb3540b9995eaa1fa0d2ca9e797d0a635ae4433c68c2d  $ZMQ_VISION_GGUF" | sha256sum -c
+          python -m pytest tests/test_llm.py -m llm

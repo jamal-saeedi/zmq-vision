@@ -10,8 +10,8 @@
 <text x="36" y="164" fill="#dbeafe">ZMQ Vision · local TCP demo</text>
 <text x="36" y="196" fill="#dbeafe">Backend: RGB statistics (no trained model, no downloads)</text>
 <text x="36" y="228" fill="#dbeafe">Health: OK</text>
-<text x="36" y="260" fill="#dbeafe">sync : red: 0.82534 | 0.39 ms server time</text>
-<text x="36" y="292" fill="#dbeafe">async: blue: 0.82818 | 0.35 ms server time</text>
+<text x="36" y="260" fill="#dbeafe">sync : red: 0.82534 | 0.47 ms server time</text>
+<text x="36" y="292" fill="#dbeafe">async: blue: 0.82818 | 0.37 ms server time</text>
 <text x="36" y="324" fill="#5eead4">PASS · correlated responses received; server shut down cleanly</text></g>
 <text x="36" y="374" fill="#64748b" font-size="13" font-family="sans-serif">Captured output · processing time varies by machine · RGB statistics demo backend</text>
 </svg>

@@ -20,6 +20,7 @@ def main():
         ]
         metadata = email.message_from_bytes(archive.read(metadata_file))
         assert metadata["Name"] == "zmq-vision"
+        assert set(metadata.get_all("Provides-Extra")) == {"torch", "tf", "llm", "dev"}
         assert "zmq_inference/py.typed" in archive.namelist()
         labels = json.loads(archive.read("zmq_inference/data/imagenet_classes.json"))
         assert labels["0"] and labels["999"]
@@ -44,6 +45,7 @@ def main():
                 "assert len(load_imagenet_labels()) >= 1000; "
                 "assert importlib.util.find_spec('torch') is None; "
                 "assert importlib.util.find_spec('tensorflow') is None; "
+                "assert importlib.util.find_spec('llama_cpp') is None; "
                 "assert importlib.util.find_spec('numpy') is None",
             ],
             check=True,

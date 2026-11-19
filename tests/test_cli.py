@@ -3,14 +3,14 @@ import signal
 
 from click.testing import CliRunner
 
-from zmq_inference import ServerConfig
+from zmq_inference import ServerConfig, __version__
 from zmq_inference.cli.main import cli
 from zmq_inference.server.demo_server import DemoInferenceServer
 
 
 def test_version_and_doctor():
     runner = CliRunner()
-    assert "0.3.0" in runner.invoke(cli, ["--version"]).output
+    assert __version__ in runner.invoke(cli, ["--version"]).output
     result = runner.invoke(cli, ["doctor"])
     assert result.exit_code == 0
     assert json.loads(result.output)["libzmq"]

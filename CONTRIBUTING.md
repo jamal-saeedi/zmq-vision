@@ -7,13 +7,13 @@ Before submitting a change:
 ```bash
 ruff check .
 ruff format --check .
-python -m pytest -m "not torch and not tf"
+python -m pytest -m "not torch and not tf and not llm"
 python -m build
 python -m twine check dist/*
 ```
 
-Test transport changes with real localhost sockets. Keep ML imports lazy so the core package remains usable without either framework. Exercise optional model changes using `tests/test_backends.py`; document which backend, version, device, and weights were tested. Random weights validate plumbing, not classification accuracy.
+Test transport changes with real localhost sockets. Keep ML imports lazy so the core package remains lightweight. Exercise PyTorch or TensorFlow changes with `tests/test_backends.py`. For the GGUF backend, install `.[llm,dev]`, download the weights from the README, and run `ZMQ_VISION_GGUF="$PWD/smollm2.gguf" python -m pytest tests/test_llm.py -m llm`. Include the runtime version, device, and weights when reporting results.
 
 Preserve the `zmq_inference` API unless a breaking change is documented in the changelog. Add a regression test for behavior changes, update affected examples, and describe user-visible outcomes in pull requests. Do not commit weights, tokens, `.env`, or generated build artifacts.
 
-See [architecture](docs/architecture.md) for threading and delivery constraints.
+See [architecture](docs/architecture.md) for threading and delivery constraints and [benchmarks](docs/benchmarks.md) for a reproducible local workload.

@@ -1,16 +1,11 @@
-"""
-zmq_inference - ZMQ Vision: image inference over ZeroMQ.
+"""ZMQ Vision serves image models and small local language models over ZeroMQ."""
 
-Supports PyTorch (timm) and TensorFlow (Keras) backends for ImageNet classification
-with a clean async/sync client API and a Click CLI.
-"""
-
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 __author__ = "Jamal Saeedi"
 __email__ = "jamal.saeedi7@gmail.com"
 
 from zmq_inference.core.config import ClientConfig, ServerConfig
-from zmq_inference.core.protocol import InferenceRequest, InferenceResponse, Prediction
+from zmq_inference.core.protocol import Generation, InferenceRequest, InferenceResponse, Prediction
 
 __all__ = [
     "__version__",
@@ -19,4 +14,5 @@ __all__ = [
     "InferenceRequest",
     "InferenceResponse",
     "Prediction",
+    "Generation",
 ]

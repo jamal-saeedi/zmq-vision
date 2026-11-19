@@ -1,6 +1,9 @@
 name: Publish to PyPI
 
 on:
+  workflow_run:
+    workflows: ['GitHub release']
+    types: [completed]
   workflow_dispatch:
     inputs:
       tag:
@@ -12,7 +15,47 @@ permissions:
   contents: read
 
 jobs:
+  select-tag:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      tag: ${{ steps.tag.outputs.value }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - id: tag
+        name: Select the requested or opted-in release tag
+        env:
+          MANUAL_TAG: ${{ inputs.tag }}
+          RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          tag="$MANUAL_TAG"
+          if [[ "$GITHUB_EVENT_NAME" == workflow_run ]]; then
+            while IFS= read -r candidate; do
+              [[ "$candidate" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || continue
+              if git for-each-ref --format='%(trailers:key=Publish-To-PyPI,valueonly)' "refs/tags/$candidate" | grep -Fxq yes; then
+                if [[ -n "$tag" ]]; then
+                  echo "More than one PyPI opt-in tag points at this commit." >&2
+                  exit 1
+                fi
+                tag="$candidate"
+              fi
+            done < <(git tag --list --points-at "$RELEASE_SHA" 'v*')
+            [[ -n "$tag" ]] || exit 0
+          fi
+          [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          printf 'value=%s\n' "$tag" >> "$GITHUB_OUTPUT"
+
   publish:
+    needs: select-tag
+    if: needs.select-tag.outputs.tag != ''
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment:
@@ -26,18 +69,14 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.12'
-      - name: Validate release tag
-        env:
-          RELEASE_TAG: ${{ inputs.tag }}
-        run: python -c "import os,re; assert re.fullmatch(r'v[0-9]+\.[0-9]+\.[0-9]+', os.environ['RELEASE_TAG']), 'Expected a stable vX.Y.Z tag'"
       - name: Download released distributions
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_TAG: ${{ needs.select-tag.outputs.tag }}
         run: gh release download "$RELEASE_TAG" --pattern '*.whl' --pattern '*.tar.gz' --dir dist
       - name: Verify metadata
         env:
-          RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_TAG: ${{ needs.select-tag.outputs.tag }}
         run: |
           python - <<'PY'
           import email, os, pathlib, tarfile, zipfile

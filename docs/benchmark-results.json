@@ -1,0 +1,235 @@
+[
+  {
+    "package": "0.3.0",
+    "python": "3.12.3",
+    "platform": "Linux-6.18.58.1-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+    "pyzmq": "27.3.0",
+    "libzmq": "4.3.5",
+    "pillow": "13.0.0",
+    "backend": "demo",
+    "startup_ms": 5.93,
+    "rounds": 3,
+    "warmup_per_client": 5,
+    "workloads": [
+      {
+        "clients": 1,
+        "requests": 120,
+        "requests_per_second": 18.23,
+        "round_trip": {
+          "p50_ms": 55.953,
+          "p95_ms": 56.503,
+          "p99_ms": 56.626
+        },
+        "server_processing": {
+          "p50_ms": 0.649,
+          "p95_ms": 0.744,
+          "p99_ms": 0.801
+        }
+      },
+      {
+        "clients": 4,
+        "requests": 480,
+        "requests_per_second": 117.85,
+        "round_trip": {
+          "p50_ms": 52.947,
+          "p95_ms": 58.953,
+          "p99_ms": 59.941
+        },
+        "server_processing": {
+          "p50_ms": 0.814,
+          "p95_ms": 1.462,
+          "p99_ms": 1.932
+        }
+      }
+    ]
+  },
+  {
+    "package": "0.3.0",
+    "python": "3.12.3",
+    "platform": "Linux-6.18.58.1-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+    "pyzmq": "27.3.0",
+    "libzmq": "4.3.5",
+    "pillow": "13.0.0",
+    "backend": "torch",
+    "startup_ms": 2749.44,
+    "rounds": 2,
+    "warmup_per_client": 5,
+    "workloads": [
+      {
+        "clients": 1,
+        "requests": 40,
+        "requests_per_second": 17.91,
+        "round_trip": {
+          "p50_ms": 56.107,
+          "p95_ms": 56.426,
+          "p99_ms": 56.562
+        },
+        "server_processing": {
+          "p50_ms": 17.646,
+          "p95_ms": 19.596,
+          "p99_ms": 20.451
+        }
+      },
+      {
+        "clients": 4,
+        "requests": 160,
+        "requests_per_second": 54.34,
+        "round_trip": {
+          "p50_ms": 56.558,
+          "p95_ms": 111.046,
+          "p99_ms": 113.765
+        },
+        "server_processing": {
+          "p50_ms": 17.049,
+          "p95_ms": 21.28,
+          "p99_ms": 24.072
+        }
+      }
+    ],
+    "model": "mobilenetv2_100",
+    "runtime": "torch 2.15.0 / timm 1.0.31"
+  },
+  {
+    "package": "0.4.0",
+    "python": "3.12.3",
+    "platform": "Linux-6.18.58.1-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+    "pyzmq": "27.3.0",
+    "libzmq": "4.3.5",
+    "pillow": "13.0.0",
+    "backend": "demo",
+    "startup_ms": 6.14,
+    "rounds": 3,
+    "warmup_per_client": 5,
+    "workloads": [
+      {
+        "clients": 1,
+        "requests": 120,
+        "requests_per_second": 317.51,
+        "round_trip": {
+          "p50_ms": 3.17,
+          "p95_ms": 3.305,
+          "p99_ms": 3.402
+        },
+        "server_processing": {
+          "p50_ms": 0.598,
+          "p95_ms": 0.651,
+          "p99_ms": 0.696
+        }
+      },
+      {
+        "clients": 4,
+        "requests": 480,
+        "requests_per_second": 964.48,
+        "round_trip": {
+          "p50_ms": 3.902,
+          "p95_ms": 5.341,
+          "p99_ms": 6.118
+        },
+        "server_processing": {
+          "p50_ms": 0.805,
+          "p95_ms": 1.191,
+          "p99_ms": 1.489
+        }
+      }
+    ]
+  },
+  {
+    "package": "0.4.0",
+    "python": "3.12.3",
+    "platform": "Linux-6.18.58.1-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+    "pyzmq": "27.3.0",
+    "libzmq": "4.3.5",
+    "pillow": "13.0.0",
+    "backend": "torch",
+    "startup_ms": 2933.68,
+    "rounds": 2,
+    "warmup_per_client": 5,
+    "workloads": [
+      {
+        "clients": 1,
+        "requests": 40,
+        "requests_per_second": 52.13,
+        "round_trip": {
+          "p50_ms": 19.265,
+          "p95_ms": 21.751,
+          "p99_ms": 21.928
+        },
+        "server_processing": {
+          "p50_ms": 16.981,
+          "p95_ms": 19.228,
+          "p99_ms": 19.908
+        }
+      },
+      {
+        "clients": 4,
+        "requests": 160,
+        "requests_per_second": 56.19,
+        "round_trip": {
+          "p50_ms": 70.533,
+          "p95_ms": 78.03,
+          "p99_ms": 80.509
+        },
+        "server_processing": {
+          "p50_ms": 17.672,
+          "p95_ms": 20.031,
+          "p99_ms": 21.499
+        }
+      }
+    ],
+    "model": "mobilenetv2_100",
+    "runtime": "torch 2.15.0 / timm 1.0.31"
+  },
+  {
+    "package": "0.4.0",
+    "python": "3.12.3",
+    "platform": "Linux-6.18.58.1-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+    "pyzmq": "27.3.0",
+    "libzmq": "4.3.5",
+    "pillow": "13.0.0",
+    "backend": "llm",
+    "startup_ms": 180.57,
+    "rounds": 3,
+    "warmup_per_client": 2,
+    "workloads": [
+      {
+        "clients": 1,
+        "requests": 24,
+        "requests_per_second": 3.07,
+        "round_trip": {
+          "p50_ms": 318.053,
+          "p95_ms": 365.966,
+          "p99_ms": 389.177
+        },
+        "server_processing": {
+          "p50_ms": 317.08,
+          "p95_ms": 363.21,
+          "p99_ms": 387.56
+        },
+        "completion_tokens": 768,
+        "completion_tokens_per_second": 98.13
+      },
+      {
+        "clients": 4,
+        "requests": 96,
+        "requests_per_second": 3.51,
+        "round_trip": {
+          "p50_ms": 1123.325,
+          "p95_ms": 1216.996,
+          "p99_ms": 1259.506
+        },
+        "server_processing": {
+          "p50_ms": 268.284,
+          "p95_ms": 347.111,
+          "p99_ms": 428.615
+        },
+        "completion_tokens": 3072,
+        "completion_tokens_per_second": 112.41
+      }
+    ],
+    "model_sha256": "2e8040ceae7815abe0dcb3540b9995eaa1fa0d2ca9e797d0a635ae4433c68c2d",
+    "model": "SmolLM2-135M-Instruct-Q4_K_M.gguf",
+    "max_tokens": 32,
+    "cpu_threads": 2,
+    "runtime": "llama-cpp-python 0.3.37"
+  }
+]

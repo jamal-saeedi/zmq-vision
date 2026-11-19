@@ -1,5 +1,5 @@
 include CHANGELOG.md CONTRIBUTING.md Makefile .env.example
-recursive-include docs *.md *.svg *.txt
+recursive-include docs *.md *.svg *.txt *.json
 recursive-include examples *.py *.md *.png
 recursive-include scripts *.py
 recursive-include tests *.py

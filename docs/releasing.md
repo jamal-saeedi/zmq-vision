@@ -10,8 +10,8 @@ The package name is `zmq-vision`; the import namespace remains `zmq_inference`. 
 
 ## PyPI publication
 
-GitHub releases do not automatically publish to PyPI. Configure PyPI Trusted Publishing for this repository's `publish.yml` workflow and the GitHub `pypi` environment. In GitHub, configure that environment with required reviewers before enabling publication. See [PyPI's Trusted Publishing guide](https://docs.pypi.org/trusted-publishers/adding-a-publisher/).
+Configure PyPI Trusted Publishing for this repository's `publish.yml` workflow and the GitHub `pypi` environment. The environment's reviewer settings apply to both publication paths. See [PyPI's Trusted Publishing guide](https://docs.pypi.org/trusted-publishers/adding-a-publisher/).
 
-After an explicit publication decision, run the **Publish to PyPI** workflow manually with the release tag. It downloads the distributions from that GitHub release, verifies wheel metadata against the requested version, and publishes with an OIDC identity. No API token is stored in the repository.
+After an explicit publication decision, add a separate paragraph containing `Publish-To-PyPI: yes` to the annotated tag message. The **Publish to PyPI** workflow starts when the corresponding GitHub release workflow succeeds. For an existing release, dispatch **Publish to PyPI** manually with the tag. Both paths download the distributions from GitHub, verify their metadata against the tag, and publish with an OIDC identity.
 
 For a first release, ensure your PyPI account can claim the distribution name. Never reuse a token exposed in chat or commit history. Publishing a version to PyPI is irreversible; fixes require another version.

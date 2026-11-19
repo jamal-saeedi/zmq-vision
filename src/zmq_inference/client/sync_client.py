@@ -12,7 +12,7 @@ from PIL import Image
 
 from zmq_inference.client.base import BaseInferenceClient
 from zmq_inference.core.config import ClientConfig
-from zmq_inference.core.protocol import InferenceRequest, InferenceResponse
+from zmq_inference.core.protocol import DEFAULT_MAX_TOKENS, InferenceRequest, InferenceResponse
 from zmq_inference.utils.image import encode_image
 
 
@@ -107,3 +107,9 @@ class SyncClient(BaseInferenceClient):
     def ping(self) -> InferenceResponse:
         """Check readiness without running model inference."""
         return self._exchange(InferenceRequest(operation="ping"))
+
+    def generate(self, prompt: str, *, max_tokens: int = DEFAULT_MAX_TOKENS) -> InferenceResponse:
+        """Generate text with a text backend, using the same request deadlines."""
+        return self._exchange(
+            InferenceRequest(operation="generate", prompt=prompt, max_tokens=max_tokens)
+        )

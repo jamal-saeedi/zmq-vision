@@ -1,6 +1,6 @@
 # Protocol and execution model
 
-Each client owns a DEALER socket and sends one UTF-8 JSON frame. The server's ROUTER receives the connection identity followed by that frame. Only the network thread touches the ROUTER; a bounded `ThreadPoolExecutor` decodes images and executes models. Completed futures return through the same network thread. There is no in-process socket proxy.
+Each client owns a DEALER socket and sends one UTF-8 JSON frame. The server's ROUTER receives the connection identity followed by that frame. The network thread owns the ROUTER. A bounded `ThreadPoolExecutor` decodes images or tokenizes prompts and executes the model. The network thread sends completed futures back to the originating client.
 
 ## Messages
 
@@ -22,7 +22,19 @@ Response (image and predictions are empty on a readiness check or failure):
 {"request_id":"example-1","predictions":[{"label":"red","confidence":0.82}],"image":"<base64 JPEG>","elapsed_ms":0.7,"error":null}
 ```
 
-`elapsed_ms` measures server processing and image serialization, excluding admission queueing and network round trips. Metadata is reserved for custom callers; the built-in predictors do not consume it. Requests must be JSON objects with a nonempty string ID (maximum 128 characters), dictionary metadata, and a string image payload. Omitting an ID generates a new one for older callers. Payloads must contain strict base64 and a Pillow-readable image.
+Text generation on the LLM backend:
+
+```json
+{"request_id":"example-3","operation":"generate","prompt":"Name a primary color.","max_tokens":24}
+```
+
+```json
+{"request_id":"example-3","predictions":[],"image":"","elapsed_ms":41,"error":null,"generation":{"text":"Red.","prompt_tokens":13,"completion_tokens":2,"finish_reason":"stop"}}
+```
+
+`generation` is present only on a successful text response. The image and ping response schemas from 0.3 are unchanged. Requests are JSON objects with a nonempty string ID (maximum 128 characters) and optional object metadata. Omitting an ID generates a new one for older callers. The image payload is strict base64 and decodes to a Pillow-readable image. Generation accepts an optional empty image payload and a nonblank Unicode prompt. It limits the prompt to 8,192 UTF-8 bytes and `max_tokens` to 1–256, with a default of 64. The backend rejects requests whose formatted prompt plus output budget exceeds its context window.
+
+`elapsed_ms` measures server work including image serialization or text generation. It excludes queueing and network round trips. Token usage comes from the runtime. The text finish reason is `stop` for a model stop token or stop sequence and `length` when the token budget is reached.
 
 Malformed JSON or image data produces an error response without terminating the server. Invalid multipart envelopes receive an error with ID `unknown`. Invalid IDs and oversized frames may be impossible to correlate; clients eventually time out. A custom caller should always send and check an ID.
 
@@ -36,7 +48,9 @@ Malformed JSON or image data produces an error response without terminating the 
 | `max_pending_requests` | 16 | Accepted running plus queued futures |
 | `max_message_bytes` | 8 MiB | libzmq frame limit and application size check |
 | `max_image_pixels` | 16,000,000 | Decoded image width × height |
-| `poll_timeout_ms` | 50 | Poll interval for shutdown and completed futures |
+| `poll_timeout_ms` | 50 | Idle socket poll timeout. While work is pending, the poll timeout is at most 2 ms. |
+
+Workers can complete while the network thread is polling the socket. The shorter poll while work is pending reduces response delivery delay at the cost of more frequent polls during inference. Idle servers retain the idle poll interval.
 
 libzmq high water marks also bound per-peer transport queues. Total memory still depends on the number of connected peers and decoded images; these are not global process memory quotas. Image echoing is retained for API compatibility and adds bandwidth and encoding work.
 
@@ -62,7 +76,22 @@ PyTorch uses `timm.data.resolve_model_data_config` and `create_transform` so inp
 
 One worker avoids concurrent access to a model by default. More workers share the model instance; the backend author must establish thread safety and memory requirements before increasing the count. This is not dynamic batching or a multi-process GPU scheduler.
 
-Text generation is outside this protocol. A future LLM backend would need explicit text messages, token budgets, cancellation, and potentially streaming responses rather than overloading the image payload.
+The LLM backend loads a local ChatML-compatible GGUF into one CPU context and defaults to two inference threads and a 2,048-token context. The server requires one model worker because llama.cpp keeps mutable state. The backend formats a single user message and returns one complete response. A client timeout or cancellation resets the client socket. The server may still finish generation.
+
+## Configuration
+
+Explicit Python arguments and CLI options override environment defaults. The application reads exported variables. See the [.env example](../.env.example) for shell setup.
+
+| Variable | Default | Used by |
+| --- | --- | --- |
+| `ZMQ_HOST` | `127.0.0.1` | Server bind host |
+| `ZMQ_SERVER_HOST` | `127.0.0.1` | Client destination |
+| `ZMQ_PORT` | `5576` | Server and client |
+| `ZMQ_MODEL` | `mobilenetv2_100` | PyTorch model |
+| `ZMQ_DEVICE` | `auto` | Model device selection |
+| `ZMQ_TIMEOUT_MS` | `30000` | Client deadline per attempt |
+
+The protocol sends plaintext over TCP. Bind to localhost or use a protected private network or tunnel.
 
 ## Upstream references
 

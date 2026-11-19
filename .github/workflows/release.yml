@@ -27,7 +27,7 @@ jobs:
         run: python -c "import os; from zmq_inference import __version__; assert os.environ['RELEASE_TAG'] == 'v' + __version__"
       - run: ruff check .
       - run: ruff format --check .
-      - run: python -m pytest -m "not torch and not tf"
+      - run: python -m pytest -m "not torch and not tf and not llm"
       - run: python -m build
       - run: python -m twine check dist/*
       - run: python scripts/check_distribution.py dist
@@ -37,5 +37,8 @@ jobs:
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
           version="${RELEASE_TAG#v}"
+          notes="docs/releases/$version.md"
+          title="$(sed -n '1s/^# //p' "$notes")"
+          test -n "$title"
           gh release create "$RELEASE_TAG" dist/* --verify-tag \
-            --title "ZMQ Vision $version" --notes-file "docs/releases/$version.md"
+            --title "$title" --notes-file "$notes"

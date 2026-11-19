@@ -51,7 +51,8 @@ desktop.ini
 # Logs
 *.log
 
-# Downloaded model weights (timm / Keras cache)
+# Downloaded model weights (local GGUF files and timm / Keras caches)
+*.gguf
 ~/.cache/huggingface/
 ~/.keras/
 

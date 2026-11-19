@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.4.0] - 2026-11-19
+
+### Added
+
+- Optional CPU llama.cpp backend for local ChatML GGUF models. Text generation is available from the CLI and both Python clients, with bounded prompts, output token caps, and token usage in responses.
+- Real-model GGUF smoke test and a reproducible local TCP benchmark harness with [measured vision and text results](docs/benchmarks.md).
+- Opt-in PyPI publishing for annotated release tags through the existing Trusted Publishing workflow.
+
+### Changed
+
+- Check completed inference futures sooner while work is pending to reduce response latency. Idle polling retains its existing interval.
+- Rewrote the README around the download-free TCP demo, real models, and the transport design. The distribution, import namespace, CLI alias, and vision wire format retain compatibility.
+
 ## [0.3.0] - 2026-10-25
 
 ### Added

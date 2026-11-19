@@ -1,10 +1,16 @@
-# Migrating to 0.3
+# Migration and compatibility
+
+## 0.3 to 0.4
+
+Keep using `pip install zmq-vision`, `import zmq_inference`, and either existing CLI name. Image inference and readiness retain their wire schemas. Text generation requires a 0.4 or newer client and text server. Install `zmq-vision[llm]` and pass `--model-path` to run a local GGUF. See the [configuration reference](architecture.md#configuration) for environment and server defaults.
+
+## 0.2 to 0.3
 
 The project is now **ZMQ Vision**, distribution `zmq-vision`. Install from [PyPI](https://pypi.org/project/zmq-vision/) with `python -m pip install zmq-vision`, from this repository, or from a release wheel.
 
 Existing `zmq_inference` Python imports and `zmq-inference` CLI command remain available. `zmq-vision` is the preferred CLI name. The package moved into `src/`; editable installation is required for local development. `requirements.txt` now delegates to project metadata instead of pinning obsolete GPU packages.
 
-## Intentional changes
+### Changes in 0.3
 
 - Python 3.10+ is required. Core dependencies are current PyZMQ, Pillow, and Click. NumPy is supplied by ML extras or development tools.
 - The bind host defaults to `127.0.0.1`. Explicitly pass `--host 0.0.0.0` to accept trusted LAN clients.

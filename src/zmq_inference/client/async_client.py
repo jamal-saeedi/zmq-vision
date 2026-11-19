@@ -11,14 +11,14 @@ import zmq.asyncio
 from PIL import Image
 
 from zmq_inference.core.config import ClientConfig
-from zmq_inference.core.protocol import InferenceRequest, InferenceResponse
+from zmq_inference.core.protocol import DEFAULT_MAX_TOKENS, InferenceRequest, InferenceResponse
 from zmq_inference.utils.image import encode_image
 
 
 class AsyncClient:
     """An asyncio client scoped to one event loop.
 
-    Concurrent infer() calls on one client are serialized to preserve response
+    Concurrent calls on one client are serialized to preserve response
     ownership. Use separate clients to run requests in parallel on the server.
     Retries can repeat model execution; max_retries counts total attempts.
     """
@@ -101,6 +101,14 @@ class AsyncClient:
 
     async def ping(self) -> InferenceResponse:
         return await self._exchange(InferenceRequest(operation="ping"))
+
+    async def generate(
+        self, prompt: str, *, max_tokens: int = DEFAULT_MAX_TOKENS
+    ) -> InferenceResponse:
+        """Generate text with a text backend, using the same request deadlines."""
+        return await self._exchange(
+            InferenceRequest(operation="generate", prompt=prompt, max_tokens=max_tokens)
+        )
 
     async def __aenter__(self) -> AsyncClient:
         await self.connect()

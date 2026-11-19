@@ -14,14 +14,14 @@ from PIL import Image
 
 from zmq_inference.core.config import ServerConfig
 from zmq_inference.core.logging import get_logger
-from zmq_inference.core.protocol import InferenceRequest, InferenceResponse, Prediction
+from zmq_inference.core.protocol import Generation, InferenceRequest, InferenceResponse, Prediction
 from zmq_inference.utils.image import decode_image, encode_image
 
 logger = get_logger("server")
 
 
-class BaseInferenceServer(ABC, threading.Thread):
-    """Extend load_model, preprocess and predict to serve your own image model.
+class BaseModelServer(ABC, threading.Thread):
+    """Run a model behind a bounded queue and a single ROUTER socket.
 
     start() launches the network thread. wait_until_ready() propagates startup
     failures. stop() stops admission; join() waits for running predictions to
@@ -40,13 +40,11 @@ class BaseInferenceServer(ABC, threading.Thread):
     def load_model(self) -> None:
         """Load model once before the server accepts requests."""
 
-    @abstractmethod
-    def preprocess(self, img: Image.Image) -> Any:
-        """Convert a decoded RGB image into model input."""
+    def _infer(self, payload: str) -> tuple[list[Prediction], str]:
+        raise ValueError("this backend does not support image inference")
 
-    @abstractmethod
-    def predict(self, tensor: Any) -> list[Prediction]:
-        """Return predictions in descending confidence order."""
+    def _generate(self, prompt: str, max_tokens: int) -> Generation:
+        raise ValueError("this backend does not support text generation")
 
     def stop(self) -> None:
         """Signal shutdown without touching a socket from the calling thread."""
@@ -78,15 +76,18 @@ class BaseInferenceServer(ABC, threading.Thread):
             request_id = request.request_id
             image_b64 = ""
             predictions = []
+            generation = None
             if request.operation == "infer":
-                with decode_image(request.payload, max_pixels=self.config.max_image_pixels) as img:
-                    predictions = self.predict(self.preprocess(img))
-                    image_b64 = encode_image(img)
+                predictions, image_b64 = self._infer(request.payload)
+            elif request.operation == "generate":
+                assert request.prompt is not None  # validated by InferenceRequest
+                generation = self._generate(request.prompt, request.max_tokens)
             return InferenceResponse(
                 request_id=request_id,
                 predictions=predictions,
                 image=image_b64,
                 elapsed_ms=(time.perf_counter() - started) * 1000,
+                generation=generation,
             )
         except Exception as exc:
             logger.debug("Request %s failed", request_id, exc_info=True)
@@ -136,7 +137,12 @@ class BaseInferenceServer(ABC, threading.Thread):
                 for future in list(pending):
                     if future.done():
                         self._send(socket, pending.pop(future), future.result())
-                if not socket.poll(self.config.poll_timeout_ms, zmq.POLLIN):
+                # Completed workers do not wake the ROUTER. Check their futures
+                # sooner while work is in flight and retain the idle poll interval.
+                poll_ms = (
+                    min(2, self.config.poll_timeout_ms) if pending else self.config.poll_timeout_ms
+                )
+                if not socket.poll(poll_ms, zmq.POLLIN):
                     continue
                 frames = socket.recv_multipart()
                 identity = frames[0]
@@ -174,3 +180,19 @@ class BaseInferenceServer(ABC, threading.Thread):
             socket.close(linger=0)
             context.term()
             logger.info("Server stopped")
+
+
+class BaseInferenceServer(BaseModelServer):
+    """Extend load_model, preprocess and predict to serve your own image model."""
+
+    @abstractmethod
+    def preprocess(self, img: Image.Image) -> Any:
+        """Convert a decoded RGB image into model input."""
+
+    @abstractmethod
+    def predict(self, tensor: Any) -> list[Prediction]:
+        """Return predictions in descending confidence order."""
+
+    def _infer(self, payload: str) -> tuple[list[Prediction], str]:
+        with decode_image(payload, max_pixels=self.config.max_image_pixels) as img:
+            return self.predict(self.preprocess(img)), encode_image(img)
