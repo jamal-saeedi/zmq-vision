@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.5.2] - 2026-11-19
+
+- Documented the browser image-question setup from install through upload, including the model and projector downloads, separate dashboard ports, and help for a disabled **Ask image** task.
+
 ## [0.5.1] - 2026-11-19
 
 - The dashboard detects available tasks and guides users to SmolVLM when the connected backend cannot answer image questions.

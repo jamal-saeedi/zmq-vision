@@ -13,7 +13,7 @@
 In a Python 3.10+ virtual environment:
 
 ```bash
-python -m pip install --upgrade "zmq-vision>=0.5.1"
+python -m pip install --upgrade "zmq-vision>=0.5.2"
 zmq-inference demo
 ```
 
@@ -21,35 +21,41 @@ The demo starts a real localhost TCP server, sends generated images using both P
 
 ## Browser dashboard
 
+### Try classification without downloading weights
+
 ```bash
 zmq-inference web --demo
 ```
 
-Open **http://127.0.0.1:8080**, choose **Use sample**, then run classification. The dashboard shows model scores, token usage when applicable, request IDs, and a chart of recent server times. The launcher works from a checkout with `./scripts/demo-web.sh`. To test an existing model server, use `zmq-inference web` or `./scripts/demo-web.sh --connect`.
-
-For **Ask image**, download the [SmolVLM model and projector](#ask-a-question-about-an-image) and launch the dashboard directly with the VLM. Stop the classifier dashboard first if it is using port 8080.
-
-```bash
-zmq-inference web --vlm --model-path smolvlm.gguf --projector-path projector.gguf
-```
-
-From a source checkout, run `./scripts/demo-web.sh --vlm --model-path smolvlm.gguf --projector-path projector.gguf`. The dashboard disables tasks the connected server cannot run. The download-free demo supports **Classify**, and SmolVLM supports **Generate** and **Ask image**.
-
-<img src="https://raw.githubusercontent.com/jamal-saeedi/zmq-vision/main/docs/assets/workbench.png" alt="The local ZMQ Inference dashboard shows an image prompt, a real SmolVLM response, token metrics, and server times" width="960">
-
-The bridge listens on loopback and connects to ZeroMQ on port 5576 by default. Use `--port` for the dashboard port and `--zmq-port` for the model port. The three tasks map to **Classify** for demo, PyTorch, or TensorFlow, **Generate** for an LLM or VLM, and **Ask image** for a VLM.
-
-## Serve a model
+Open **http://127.0.0.1:8080**, choose **Use sample**, then select **Run classification**. From a source checkout, `./scripts/demo-web.sh` starts the same RGB classifier dashboard.
 
 ### Ask a question about an image
 
-Install the optional VLM extra and download the matching SmolVLM-256M Instruct model and projector. The two quantized files total about 279 MB. Python 3.12 on Linux or WSL is the tested setup. If pip builds llama.cpp from source, it needs a C/C++ toolchain. [llama-cpp-python installation](https://llama-cpp-python.readthedocs.io/en/latest/#installation)
+Install the VLM extra and download the matching SmolVLM model and projector. The two files total about 279 MB. Python 3.12 on Linux or WSL is the tested setup. If pip builds llama.cpp from source, it needs a C/C++ toolchain. [llama-cpp-python installation](https://llama-cpp-python.readthedocs.io/en/latest/#installation)
 
 ```bash
-python -m pip install "zmq-vision[vlm]>=0.5.1"
+python -m pip install --upgrade "zmq-vision[vlm]>=0.5.2"
 base=https://huggingface.co/ggml-org/SmolVLM-256M-Instruct-GGUF/resolve/b9e4379657e1450d04d02eec8e345667265b0a00
 curl -fL "$base/SmolVLM-256M-Instruct-Q8_0.gguf" -o smolvlm.gguf
 curl -fL "$base/mmproj-SmolVLM-256M-Instruct-Q8_0.gguf" -o projector.gguf
+zmq-inference web --vlm --model-path smolvlm.gguf --projector-path projector.gguf --port 8081
+```
+
+Open **http://127.0.0.1:8081**, select **Choose image**, enter a prompt such as “What is the main subject in this image?”, then select **Ask about image**. The dashboard shows the answer, token usage, and recent server times. Port 8081 lets the classifier dashboard keep running on port 8080. From a source checkout, replace `zmq-inference web` in the launch command with `./scripts/demo-web.sh`.
+
+<img src="https://raw.githubusercontent.com/jamal-saeedi/zmq-vision/main/docs/assets/workbench.png" alt="The local ZMQ Inference dashboard shows an image prompt, a real SmolVLM response, token metrics, and server times" width="960">
+
+If **Ask image** is disabled or the dashboard reports that the backend cannot answer image questions, open the SmolVLM dashboard on port 8081. After upgrading, restart the dashboard process so the browser loads the new version. Use `zmq-inference --version` to check the installed version.
+
+To use an existing ZeroMQ server, run `zmq-inference web --zmq-port 5576` or `./scripts/demo-web.sh --connect --zmq-port 5576`. The dashboard binds to loopback and shows the tasks the connected backend supports.
+
+## Serve a model
+
+### Run SmolVLM from the CLI
+
+Install the VLM extra and download the [SmolVLM model and projector](#ask-a-question-about-an-image). Start a standalone ZeroMQ server.
+
+```bash
 zmq-inference serve --backend vlm --model-path smolvlm.gguf --projector-path projector.gguf
 ```
 
@@ -59,7 +65,7 @@ In another terminal, pass a local image:
 zmq-inference generate "What is shown in this photo?" --image photo.jpg --async --json
 ```
 
-Or run `zmq-inference web` and choose **Ask image**. The VLM accepts text-only requests too. The server uses two CPU threads and resizes images to fit 512 × 512 before model processing. The [SmolVLM weights](https://huggingface.co/ggml-org/SmolVLM-256M-Instruct-GGUF) use Apache 2.0.
+The VLM also accepts text-only requests. It uses two CPU threads and resizes images to fit 512 × 512 before model processing. The weights use Apache 2.0. [SmolVLM model card](https://huggingface.co/ggml-org/SmolVLM-256M-Instruct-GGUF)
 
 ### Generate text with a small LLM
 
