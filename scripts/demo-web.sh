@@ -8,10 +8,10 @@ if [[ -z "${ZMQ_DEMO_PYTHON:-}" && -z "${VIRTUAL_ENV:-}" && -x "$repo/.venv/bin/
 fi
 
 options=(--demo)
-if [[ "${1:-}" == "--connect" ]]; then
-    shift
-    options=()
-fi
+case "${1:-}" in
+    --connect) shift; options=() ;;
+    --vlm) options=() ;;
+esac
 
 export PYTHONPATH="$repo/src${PYTHONPATH:+:$PYTHONPATH}"
 exec "$demo_python" -m zmq_inference web "${options[@]}" "$@"

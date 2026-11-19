@@ -3,6 +3,7 @@
 const el = (id) => document.getElementById(id);
 const form = el("request");
 const imageInput = el("image");
+const taskInputs = [...form.querySelectorAll('input[name="operation"]')];
 const modes = {
   infer: "Run classification",
   generate: "Generate text",
@@ -11,6 +12,8 @@ const modes = {
 const taskNames = {infer: "Classify", generate: "Generate", describe: "Ask image"};
 const history = [];
 let imageUrl = "";
+let serverReady = false;
+let requestPending = false;
 
 function updateMode() {
   const operation = form.elements.operation.value;
@@ -18,6 +21,26 @@ function updateMode() {
   el("text-fields").hidden = operation === "infer";
   el("prompt").required = operation !== "infer";
   el("submit").textContent = modes[operation];
+  el("submit").disabled =
+    !serverReady || requestPending || !taskInputs.some((input) => input.checked && !input.disabled);
+}
+
+function updateConnection(ready, operations = null) {
+  serverReady = ready;
+  const connection = el("connection");
+  connection.dataset.ready = String(ready);
+  connection.textContent = ready ? "ZeroMQ ready" : "Server unavailable";
+  el("task-note").hidden = ready;
+  el("vlm-setup").hidden = ready && operations !== null && operations.includes("describe");
+  for (const input of taskInputs) {
+    input.disabled = operations !== null && !operations.includes(input.value);
+  }
+  if (taskInputs.some((input) => input.checked && input.disabled)) {
+    const next = taskInputs.find((input) => input.value === "describe" && !input.disabled)
+      || taskInputs.find((input) => !input.disabled);
+    if (next) next.checked = true;
+  }
+  updateMode();
 }
 
 function updateImage(dataUrl, label) {
@@ -122,11 +145,10 @@ async function checkConnection() {
   connection.textContent = "Checking connection";
   try {
     const response = await fetch("/api/health", {cache: "no-store"});
-    connection.dataset.ready = String(response.ok);
-    connection.textContent = response.ok ? "ZeroMQ ready" : "Server unavailable";
+    const data = await response.json();
+    updateConnection(response.ok, Array.isArray(data.operations) ? data.operations : null);
   } catch {
-    connection.dataset.ready = "false";
-    connection.textContent = "Server unavailable";
+    updateConnection(false);
   } finally {
     el("check").disabled = false;
   }
@@ -169,6 +191,7 @@ imageInput.addEventListener("change", () => {
 });
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
+  if (el("submit").disabled) return;
   const operation = form.elements.operation.value;
   const request = {operation};
   clearResponse();
@@ -183,7 +206,8 @@ form.addEventListener("submit", async (event) => {
     request.prompt = el("prompt").value.trim();
     request.max_tokens = Number(el("tokens").value);
   }
-  el("submit").disabled = true;
+  requestPending = true;
+  updateMode();
   setStatus("Running inference…");
   try {
     const response = await fetch("/api/request", {
@@ -192,12 +216,20 @@ form.addEventListener("submit", async (event) => {
       body: JSON.stringify(request),
     });
     const data = await response.json();
-    if (!response.ok) throw new Error(data.error || "The request failed.");
+    if (!response.ok) {
+      if (operation === "describe" && data.error?.includes("does not support")) {
+        el("vlm-setup").hidden = false;
+        el("vlm-setup").open = true;
+        throw new Error("The connected backend cannot answer image questions. Use the SmolVLM setup under Task.");
+      }
+      throw new Error(data.error || "The request failed.");
+    }
     showResponse(data, operation);
   } catch (error) {
     setStatus(error.message, true);
   } finally {
-    el("submit").disabled = false;
+    requestPending = false;
+    updateMode();
   }
 });
 

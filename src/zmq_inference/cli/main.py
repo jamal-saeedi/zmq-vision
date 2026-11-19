@@ -282,24 +282,45 @@ def health_cmd(host, port, timeout, as_json):
 @click.option(
     "--demo", is_flag=True, help="Start a download-free classifier as part of the browser demo."
 )
+@click.option("--vlm", is_flag=True, help="Start a CPU vision-language model for image questions.")
+@click.option(
+    "--model-path", type=click.Path(dir_okay=False, path_type=Path), help="Local VLM GGUF file."
+)
+@click.option(
+    "--projector-path",
+    type=click.Path(dir_okay=False, path_type=Path),
+    help="Matching local vision projector GGUF file.",
+)
 @click.option("--port", default=8080, type=click.IntRange(0, 65535), show_default=True)
 @click.option(
     "--zmq-port", type=click.IntRange(1, 65535), help="Connect to an existing local server."
 )
 @click.option("--timeout", type=click.IntRange(1), help="ZeroMQ timeout in milliseconds.")
-def web_cmd(demo, port, zmq_port, timeout):
+def web_cmd(demo, vlm, model_path, projector_path, port, zmq_port, timeout):
     """Serve a local browser interface for inference over ZeroMQ."""
     from zmq_inference.server.demo_server import DemoInferenceServer
+    from zmq_inference.server.vlm_server import VLMInferenceServer
     from zmq_inference.web import DemoWebServer
 
-    if demo and zmq_port is not None:
-        raise click.UsageError("use --demo or --zmq-port")
+    if sum((demo, vlm, zmq_port is not None)) > 1:
+        raise click.UsageError("use only one of --demo, --vlm, or --zmq-port")
+    if vlm and (model_path is None or projector_path is None):
+        raise click.UsageError("--vlm requires both --model-path and --projector-path")
+    if not vlm and (model_path is not None or projector_path is not None):
+        raise click.UsageError("--model-path and --projector-path require --vlm")
+
     server = None
     try:
-        if demo:
-            server = DemoInferenceServer(ServerConfig(host="127.0.0.1", port=0))
+        if demo or vlm:
+            server_config = ServerConfig(host="127.0.0.1", port=0, device="cpu")
+            if vlm:
+                server = VLMInferenceServer(
+                    server_config, model_path=model_path, projector_path=projector_path
+                )
+            else:
+                server = DemoInferenceServer(server_config)
             server.start()
-            server.wait_until_ready(10)
+            server.wait_until_ready(60 if vlm else 10)
             zmq_port = server.bound_port
         config = _config(ClientConfig, host="127.0.0.1", port=zmq_port, timeout_ms=timeout)
         with DemoWebServer(port, config) as web:

@@ -86,7 +86,7 @@ The LLM backend loads a local ChatML-compatible GGUF. The VLM backend loads a la
 
 ## Browser bridge
 
-`zmq-inference web` serves a packaged HTML dashboard on IPv4 loopback and forwards its typed requests via `SyncClient` to the chosen local ZeroMQ port. The HTTP bridge accepts one request at a time and limits JSON bodies to 8 MiB. It serves its own JavaScript and CSS, checks browser origins, and keeps recent timings in the current browser tab. `web --demo` starts a local RGB classifier with no download and shuts it down when the dashboard exits.
+`zmq-inference web` serves a packaged HTML dashboard on IPv4 loopback and forwards its typed requests via `SyncClient` to the chosen local ZeroMQ port. The HTTP bridge accepts one request at a time and limits JSON bodies to 8 MiB. It serves its own JavaScript and CSS, checks browser origins, and keeps recent timings in the current browser tab. During a readiness check the bridge sends `metadata: {"include_operations":true}` in a ping request. A compatible backend adds an `operations` list to that reply, allowing the page to disable tasks the backend cannot run. Earlier peers can still answer readiness checks without the list. `web --demo` starts a download-free RGB classifier. `web --vlm` starts SmolVLM with local model and projector files. A backend owned by the dashboard shuts down when it exits.
 
 ## Configuration
 

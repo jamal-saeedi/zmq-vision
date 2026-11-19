@@ -37,6 +37,13 @@
             <label><input type="radio" name="operation" value="generate"><span>Generate</span></label>
             <label><input type="radio" name="operation" value="describe"><span>Ask image</span></label>
           </div>
+          <p id="task-note" hidden>Start a local backend, then check the connection again.</p>
+          <details id="vlm-setup" hidden>
+            <summary>Enable image questions</summary>
+            <p>Ask image requires a vision-language model. After downloading the model and projector, stop this dashboard and start it with SmolVLM.</p>
+            <pre><code>zmq-inference web --vlm --model-path smolvlm.gguf --projector-path projector.gguf</code></pre>
+            <a href="https://github.com/jamal-saeedi/zmq-vision#ask-a-question-about-an-image">Download the SmolVLM files</a>
+          </details>
         </fieldset>
 
         <section id="image-fields" aria-labelledby="image-label">
@@ -61,7 +68,7 @@
           <input id="tokens" type="number" min="1" max="256" value="64">
         </section>
 
-        <button id="submit" class="primary" type="submit">Run classification</button>
+        <button id="submit" class="primary" type="submit" disabled>Run classification</button>
       </form>
 
       <div class="result-stack">

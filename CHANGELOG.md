@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.5.1] - 2026-11-19
+
+- The dashboard detects available tasks and guides users to SmolVLM when the connected backend cannot answer image questions.
+- Added `web --vlm` and a matching shell launcher option to start the dashboard and SmolVLM together.
+
 ## [0.5.0] - 2026-11-19
 
 ### Added

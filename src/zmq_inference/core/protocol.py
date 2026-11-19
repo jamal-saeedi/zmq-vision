@@ -138,6 +138,7 @@ class InferenceResponse:
         elapsed_ms:  Server-side processing time in milliseconds.
         error:       Non-``None`` when the server encountered an error.
         generation:  Text and token usage on a successful generation request.
+        operations:  Supported model operations when explicitly requested via ping.
     """
 
     request_id: str
@@ -146,6 +147,7 @@ class InferenceResponse:
     elapsed_ms: float
     error: str | None = None
     generation: Generation | None = None
+    operations: list[str] | None = None
 
     # ------------------------------------------------------------------
     # Serialisation helpers
@@ -166,6 +168,8 @@ class InferenceResponse:
                 "completion_tokens": self.generation.completion_tokens,
                 "finish_reason": self.generation.finish_reason,
             }
+        if self.operations is not None:
+            data["operations"] = self.operations
         return data
 
     @classmethod
@@ -178,6 +182,7 @@ class InferenceResponse:
             elapsed_ms=float(data.get("elapsed_ms", 0.0)),
             error=data.get("error"),
             generation=Generation(**generation) if generation is not None else None,
+            operations=data.get("operations"),
         )
 
     def to_json(self) -> str:

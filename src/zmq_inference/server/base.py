@@ -80,6 +80,7 @@ class BaseModelServer(ABC, threading.Thread):
             image_b64 = ""
             predictions = []
             generation = None
+            operations = None
             if request.operation == "infer":
                 predictions, image_b64 = self._infer(request.payload)
             elif request.operation == "generate":
@@ -88,12 +89,20 @@ class BaseModelServer(ABC, threading.Thread):
             elif request.operation == "describe":
                 assert request.prompt is not None  # validated by InferenceRequest
                 generation = self._describe(request.payload, request.prompt, request.max_tokens)
+            elif request.operation == "ping" and request.metadata.get("include_operations") is True:
+                operations = [
+                    operation
+                    for operation in ("infer", "generate", "describe")
+                    if getattr(type(self), f"_{operation}")
+                    is not getattr(BaseModelServer, f"_{operation}")
+                ]
             return InferenceResponse(
                 request_id=request_id,
                 predictions=predictions,
                 image=image_b64,
                 elapsed_ms=(time.perf_counter() - started) * 1000,
                 generation=generation,
+                operations=operations,
             )
         except Exception as exc:
             logger.debug("Request %s failed", request_id, exc_info=True)

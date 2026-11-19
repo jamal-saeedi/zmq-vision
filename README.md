@@ -13,7 +13,7 @@
 In a Python 3.10+ virtual environment:
 
 ```bash
-python -m pip install --upgrade "zmq-vision>=0.5.0"
+python -m pip install --upgrade "zmq-vision>=0.5.1"
 zmq-inference demo
 ```
 
@@ -27,6 +27,14 @@ zmq-inference web --demo
 
 Open **http://127.0.0.1:8080**, choose **Use sample**, then run classification. The dashboard shows model scores, token usage when applicable, request IDs, and a chart of recent server times. The launcher works from a checkout with `./scripts/demo-web.sh`. To test an existing model server, use `zmq-inference web` or `./scripts/demo-web.sh --connect`.
 
+For **Ask image**, download the [SmolVLM model and projector](#ask-a-question-about-an-image) and launch the dashboard directly with the VLM. Stop the classifier dashboard first if it is using port 8080.
+
+```bash
+zmq-inference web --vlm --model-path smolvlm.gguf --projector-path projector.gguf
+```
+
+From a source checkout, run `./scripts/demo-web.sh --vlm --model-path smolvlm.gguf --projector-path projector.gguf`. The dashboard disables tasks the connected server cannot run. The download-free demo supports **Classify**, and SmolVLM supports **Generate** and **Ask image**.
+
 <img src="https://raw.githubusercontent.com/jamal-saeedi/zmq-vision/main/docs/assets/workbench.png" alt="The local ZMQ Inference dashboard shows an image prompt, a real SmolVLM response, token metrics, and server times" width="960">
 
 The bridge listens on loopback and connects to ZeroMQ on port 5576 by default. Use `--port` for the dashboard port and `--zmq-port` for the model port. The three tasks map to **Classify** for demo, PyTorch, or TensorFlow, **Generate** for an LLM or VLM, and **Ask image** for a VLM.
@@ -38,7 +46,7 @@ The bridge listens on loopback and connects to ZeroMQ on port 5576 by default. U
 Install the optional VLM extra and download the matching SmolVLM-256M Instruct model and projector. The two quantized files total about 279 MB. Python 3.12 on Linux or WSL is the tested setup. If pip builds llama.cpp from source, it needs a C/C++ toolchain. [llama-cpp-python installation](https://llama-cpp-python.readthedocs.io/en/latest/#installation)
 
 ```bash
-python -m pip install "zmq-vision[vlm]>=0.5.0"
+python -m pip install "zmq-vision[vlm]>=0.5.1"
 base=https://huggingface.co/ggml-org/SmolVLM-256M-Instruct-GGUF/resolve/b9e4379657e1450d04d02eec8e345667265b0a00
 curl -fL "$base/SmolVLM-256M-Instruct-Q8_0.gguf" -o smolvlm.gguf
 curl -fL "$base/mmproj-SmolVLM-256M-Instruct-Q8_0.gguf" -o projector.gguf

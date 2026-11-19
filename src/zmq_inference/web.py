@@ -82,7 +82,9 @@ class DemoHandler(BaseHTTPRequestHandler):
             config = replace(
                 self.server.config, timeout_ms=min(1200, self.server.config.timeout_ms)
             )
-            self._send_request(InferenceRequest(operation="ping"), config)
+            self._send_request(
+                InferenceRequest(operation="ping", metadata={"include_operations": True}), config
+            )
         else:
             self._json(404, {"error": "Unknown route."})
 
