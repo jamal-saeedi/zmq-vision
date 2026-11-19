@@ -30,6 +30,10 @@ SmolLM2-135M-Instruct Q4_K_M, llama-cpp-python 0.3.37, 2,048-token context, 32 o
 
 Token throughput is aggregate returned completion tokens divided by elapsed test time. It includes prompt processing, queueing, and TCP. The server became ready in 181 ms using the downloaded model. Weights, native runtime build flags, CPU scheduling, and prompt reuse can affect results.
 
+## Image-conditioned generation
+
+ZMQ Inference 0.5.0 ran SmolVLM-256M Instruct Q8_0 with its Q8_0 projector, llama-cpp-python 0.3.37, and two CPU threads. One client asked for the dominant color of a generated 256 × 256 image. Six measured requests had a **5.28 s median** and **5.39 s p95** round trip. Each answer used two tokens, and server processing accounted for almost all of the round trip. The benchmark process peaked at **472 MiB RSS** according to `/usr/bin/time -v`.
+
 ## Reproduce
 
 Install an editable checkout and the extra for each workload you plan to run. Download the pinned GGUF from the [README](../README.md#generate-text-on-cpu).
@@ -39,6 +43,7 @@ export CUDA_VISIBLE_DEVICES="" OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2
 python scripts/benchmark.py --backend demo
 python scripts/benchmark.py --backend torch --requests 20 --rounds 2
 python scripts/benchmark.py --backend llm --model-path smollm2.gguf --requests 8 --warmup 2
+python scripts/benchmark.py --backend vlm --model-path smolvlm.gguf --projector-path projector.gguf --max-tokens 16
 ```
 
 Run the same harness with `PYTHONPATH` pointing to the older checkout's `src` directory for a baseline. Use the same Python environment for both versions. Each client keeps one request in flight and warms up before timing begins. Percentiles use the nearest-rank method over completed requests from all rounds. Error responses abort the run. These are results from one workstation with up to four clients. [Raw JSON results](benchmark-results.json)

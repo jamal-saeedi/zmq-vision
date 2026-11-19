@@ -1,6 +1,6 @@
-ZMQ Vision · local TCP demo
+ZMQ Inference · local TCP demo
 Backend: RGB statistics (no trained model, no downloads)
 Health: OK
-sync : red: 0.82534 | 0.47 ms server time
-async: blue: 0.82818 | 0.37 ms server time
+sync : red: 0.82534 | 0.40 ms server time
+async: blue: 0.82818 | 0.32 ms server time
 PASS · correlated responses received; server shut down cleanly

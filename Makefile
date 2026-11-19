@@ -1,6 +1,6 @@
 PYTHON ?= python
 
-.PHONY: install install-torch install-tf install-llm test test-fast lint format format-check build check-dist demo
+.PHONY: install install-torch install-tf install-llm install-vlm test test-fast lint format format-check build check-dist demo
 install:
 	$(PYTHON) -m pip install -e '.[dev]'
 install-torch:
@@ -9,10 +9,12 @@ install-tf:
 	$(PYTHON) -m pip install -e '.[tf,dev]'
 install-llm:
 	$(PYTHON) -m pip install -e '.[llm,dev]'
+install-vlm:
+	$(PYTHON) -m pip install -e '.[vlm,dev]'
 test:
 	$(PYTHON) -m pytest --cov=zmq_inference --cov-report=term-missing
 test-fast:
-	$(PYTHON) -m pytest -m 'not torch and not tf and not llm' -q
+	$(PYTHON) -m pytest -m 'not torch and not tf and not llm and not vlm' -q
 lint:
 	$(PYTHON) -m ruff check .
 format:

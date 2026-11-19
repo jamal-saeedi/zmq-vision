@@ -12,6 +12,25 @@ from zmq_inference.core.config import ClientConfig, ServerConfig
 from zmq_inference.core.protocol import InferenceRequest, InferenceResponse, Prediction
 from zmq_inference.utils.image import encode_image
 
+
+@pytest.fixture
+def serve():
+    """Start a model server on a test port and always shut it down."""
+    servers = []
+
+    def start(server):
+        servers.append(server)
+        server.start()
+        server.wait_until_ready(30)
+        return ClientConfig(host="127.0.0.1", port=server.bound_port)
+
+    yield start
+    for server in servers:
+        server.stop()
+        server.join(10)
+        assert not server.is_alive()
+
+
 # ---------------------------------------------------------------------------
 # Configuration fixtures
 # ---------------------------------------------------------------------------

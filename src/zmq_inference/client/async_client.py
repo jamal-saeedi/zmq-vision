@@ -103,11 +103,21 @@ class AsyncClient:
         return await self._exchange(InferenceRequest(operation="ping"))
 
     async def generate(
-        self, prompt: str, *, max_tokens: int = DEFAULT_MAX_TOKENS
+        self,
+        prompt: str,
+        *,
+        image: str | Path | Image.Image | None = None,
+        max_tokens: int = DEFAULT_MAX_TOKENS,
     ) -> InferenceResponse:
-        """Generate text with a text backend, using the same request deadlines."""
+        """Generate text, optionally conditioning on a local image with a VLM backend."""
+        payload = "" if image is None else await asyncio.to_thread(encode_image, image)
         return await self._exchange(
-            InferenceRequest(operation="generate", prompt=prompt, max_tokens=max_tokens)
+            InferenceRequest(
+                operation="generate" if image is None else "describe",
+                payload=payload,
+                prompt=prompt,
+                max_tokens=max_tokens,
+            )
         )
 
     async def __aenter__(self) -> AsyncClient:

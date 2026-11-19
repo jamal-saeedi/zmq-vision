@@ -1,5 +1,9 @@
 # Migration and compatibility
 
+## 0.4 to 0.5
+
+The project display name is **ZMQ Inference**. Install `zmq-vision` and import `zmq_inference` as before. The README uses the existing `zmq-inference` CLI alias. Image classification and text-only generation continue to work with earlier peers. Image-conditioned generation adds the `describe` operation and requires a 0.5 or newer VLM server. The browser dashboard is available through `zmq-inference web`.
+
 ## 0.3 to 0.4
 
 Keep using `pip install zmq-vision`, `import zmq_inference`, and either existing CLI name. Image inference and readiness retain their wire schemas. Text generation requires a 0.4 or newer client and text server. Install `zmq-vision[llm]` and pass `--model-path` to run a local GGUF. See the [configuration reference](architecture.md#configuration) for environment and server defaults.

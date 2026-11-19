@@ -108,8 +108,19 @@ class SyncClient(BaseInferenceClient):
         """Check readiness without running model inference."""
         return self._exchange(InferenceRequest(operation="ping"))
 
-    def generate(self, prompt: str, *, max_tokens: int = DEFAULT_MAX_TOKENS) -> InferenceResponse:
-        """Generate text with a text backend, using the same request deadlines."""
+    def generate(
+        self,
+        prompt: str,
+        *,
+        image: str | Path | Image.Image | None = None,
+        max_tokens: int = DEFAULT_MAX_TOKENS,
+    ) -> InferenceResponse:
+        """Generate text, optionally conditioning on a local image with a VLM backend."""
         return self._exchange(
-            InferenceRequest(operation="generate", prompt=prompt, max_tokens=max_tokens)
+            InferenceRequest(
+                operation="generate" if image is None else "describe",
+                payload="" if image is None else encode_image(image),
+                prompt=prompt,
+                max_tokens=max_tokens,
+            )
         )

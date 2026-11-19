@@ -62,6 +62,14 @@ def check(response):
         raise RuntimeError(response.error)
 
 
+def sha256(path):
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
 def make_server(args):
     config = ServerConfig(host="127.0.0.1", port=0, device="cpu", model_name=args.model)
 
@@ -80,6 +88,25 @@ def make_server(args):
         from zmq_inference.server.tf_server import TFInferenceServer
 
         return TFInferenceServer(config), infer
+    if args.backend == "vlm":
+        from zmq_inference.server.vlm_server import VLMInferenceServer
+
+        def describe(client, image, _):
+            return client.generate(
+                "What is the dominant color in this image? Give one word.",
+                image=image,
+                max_tokens=args.max_tokens,
+            )
+
+        return (
+            VLMInferenceServer(
+                config,
+                model_path=args.model_path,
+                projector_path=args.projector_path,
+                threads=args.threads,
+            ),
+            describe,
+        )
 
     from zmq_inference.server.llm_server import LLMInferenceServer
 
@@ -92,20 +119,25 @@ def make_server(args):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--backend", choices=("demo", "torch", "tf", "llm"), default="demo")
-    parser.add_argument("--clients", type=int, nargs="+", default=[1, 4])
-    parser.add_argument(
-        "--requests", type=int, default=40, help="Measured requests per client per round"
-    )
-    parser.add_argument(
-        "--warmup", type=int, default=5, help="Warm-up requests per client per round"
-    )
-    parser.add_argument("--rounds", type=int, default=3)
+    parser.add_argument("--backend", choices=("demo", "torch", "tf", "llm", "vlm"), default="demo")
+    parser.add_argument("--clients", type=int, nargs="+")
+    parser.add_argument("--requests", type=int, help="Measured requests per client per round")
+    parser.add_argument("--warmup", type=int, help="Warm-up requests per client per round")
+    parser.add_argument("--rounds", type=int)
     parser.add_argument("--model", default="mobilenetv2_100", help="Pretrained timm model")
     parser.add_argument("--model-path", type=Path)
+    parser.add_argument("--projector-path", type=Path)
     parser.add_argument("--max-tokens", type=int, default=32)
     parser.add_argument("--threads", type=int, default=2, help="llama.cpp CPU threads")
     args = parser.parse_args()
+    is_vlm = args.backend == "vlm"
+    args.clients = args.clients or ([1] if is_vlm else [1, 4])
+    if args.requests is None:
+        args.requests = 3 if is_vlm else 40
+    if args.warmup is None:
+        args.warmup = 1 if is_vlm else 5
+    if args.rounds is None:
+        args.rounds = 2 if is_vlm else 3
     if (
         min(*args.clients, args.requests, args.rounds, args.threads, args.max_tokens) < 1
         or args.warmup < 0
@@ -113,8 +145,10 @@ def main():
         parser.error(
             "clients, requests, rounds, threads and tokens must be positive; warmup can be zero"
         )
-    if args.backend == "llm" and args.model_path is None:
-        parser.error("--model-path is required for the llm backend")
+    if args.backend in {"llm", "vlm"} and args.model_path is None:
+        parser.error(f"--model-path is required for the {args.backend} backend")
+    if is_vlm and args.projector_path is None:
+        parser.error("--projector-path is required for the vlm backend")
 
     server, make_request = make_server(args)
     before_start = time.perf_counter()
@@ -134,12 +168,10 @@ def main():
             "warmup_per_client": args.warmup,
             "workloads": [],
         }
-        if args.backend == "llm":
-            with args.model_path.open("rb") as weights:
-                digest = hashlib.sha256()
-                for block in iter(lambda: weights.read(1024 * 1024), b""):
-                    digest.update(block)
-                result["model_sha256"] = digest.hexdigest()
+        if args.backend in {"llm", "vlm"}:
+            result["model_sha256"] = sha256(args.model_path)
+            if is_vlm:
+                result["projector_sha256"] = sha256(args.projector_path)
             result.update(
                 model=args.model_path.name, max_tokens=args.max_tokens, cpu_threads=args.threads
             )
@@ -169,7 +201,7 @@ def main():
                 "round_trip": latency_percentiles(latencies),
                 "server_processing": latency_percentiles(processing),
             }
-            if args.backend == "llm":
+            if args.backend in {"llm", "vlm"}:
                 tokens = sum(row[-1] for row in rows)
                 workload["completion_tokens"] = tokens
                 workload["completion_tokens_per_second"] = round(tokens / wall, 2)

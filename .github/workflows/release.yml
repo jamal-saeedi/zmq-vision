@@ -27,7 +27,7 @@ jobs:
         run: python -c "import os; from zmq_inference import __version__; assert os.environ['RELEASE_TAG'] == 'v' + __version__"
       - run: ruff check .
       - run: ruff format --check .
-      - run: python -m pytest -m "not torch and not tf and not llm"
+      - run: python -m pytest -m "not torch and not tf and not llm and not vlm"
       - run: python -m build
       - run: python -m twine check dist/*
       - run: python scripts/check_distribution.py dist

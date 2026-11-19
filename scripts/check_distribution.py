@@ -20,8 +20,12 @@ def main():
         ]
         metadata = email.message_from_bytes(archive.read(metadata_file))
         assert metadata["Name"] == "zmq-vision"
-        assert set(metadata.get_all("Provides-Extra")) == {"torch", "tf", "llm", "dev"}
+        assert set(metadata.get_all("Provides-Extra")) == {"torch", "tf", "llm", "vlm", "dev"}
         assert "zmq_inference/py.typed" in archive.namelist()
+        assert all(
+            f"zmq_inference/web_assets/{name}" in archive.namelist()
+            for name in ("index.html", "app.css", "app.js")
+        )
         labels = json.loads(archive.read("zmq_inference/data/imagenet_classes.json"))
         assert labels["0"] and labels["999"]
     with tempfile.TemporaryDirectory(prefix="zmq-vision-wheel-") as temporary:

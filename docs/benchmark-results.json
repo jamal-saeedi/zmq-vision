@@ -231,5 +231,43 @@
     "max_tokens": 32,
     "cpu_threads": 2,
     "runtime": "llama-cpp-python 0.3.37"
+  },
+  {
+    "package": "0.5.0",
+    "python": "3.12.3",
+    "platform": "Linux-6.18.58.1-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+    "pyzmq": "27.3.0",
+    "libzmq": "4.3.5",
+    "pillow": "13.0.0",
+    "backend": "vlm",
+    "startup_ms": 316.6,
+    "rounds": 2,
+    "warmup_per_client": 1,
+    "workloads": [
+      {
+        "clients": 1,
+        "requests": 6,
+        "requests_per_second": 0.19,
+        "round_trip": {
+          "p50_ms": 5283.685,
+          "p95_ms": 5387.054,
+          "p99_ms": 5387.054
+        },
+        "server_processing": {
+          "p50_ms": 5281.023,
+          "p95_ms": 5384.053,
+          "p99_ms": 5384.053
+        },
+        "completion_tokens": 12,
+        "completion_tokens_per_second": 0.38
+      }
+    ],
+    "model_sha256": "2a31195d3769c0b0fd0a4906201666108834848db768af11de1d2cef7cd35e65",
+    "projector_sha256": "7e943f7c53f0382a6fc41b6ee0c2def63ba4fded9ab8ed039cc9e2ab905e0edd",
+    "model": "model.gguf",
+    "max_tokens": 16,
+    "cpu_threads": 2,
+    "runtime": "llama-cpp-python 0.3.37",
+    "peak_rss_kib": 483036
   }
 ]

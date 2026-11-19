@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.5.0] - 2026-11-19
+
+### Added
+
+- SmolVLM image-conditioned generation with a local GGUF projector, available from both Python clients and `generate --image`.
+- Local HTML dashboard with classification scores, generated responses, token counts, and recent server-time charts.
+- Executable `scripts/demo-web.sh` launcher, plus HTTP, real VLM, and distribution checks.
+
+### Changed
+
+- Rebranded the project as ZMQ Inference and updated the README architecture and model examples. The PyPI package and both existing CLI names remain available.
+- Added a tag-triggered way to retry uploading existing release files through PyPI Trusted Publishing.
+
 ## [0.4.0] - 2026-11-19
 
 ### Added

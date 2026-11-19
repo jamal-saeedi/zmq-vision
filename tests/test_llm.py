@@ -5,7 +5,6 @@ import pytest
 from click.testing import CliRunner
 
 from zmq_inference import (
-    ClientConfig,
     Generation,
     InferenceRequest,
     InferenceResponse,
@@ -25,23 +24,6 @@ class TextStub(BaseModelServer):
 
     def _generate(self, prompt, max_tokens):
         return Generation(f"Answer to {prompt}", 8, max_tokens, "length")
-
-
-@pytest.fixture
-def serve():
-    servers = []
-
-    def start(server):
-        servers.append(server)
-        server.start()
-        server.wait_until_ready(30)
-        return ClientConfig(host="127.0.0.1", port=server.bound_port)
-
-    yield start
-    for server in servers:
-        server.stop()
-        server.join(5)
-        assert not server.is_alive()
 
 
 def test_wire_shapes_remain_compatible():

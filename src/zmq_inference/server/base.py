@@ -46,6 +46,9 @@ class BaseModelServer(ABC, threading.Thread):
     def _generate(self, prompt: str, max_tokens: int) -> Generation:
         raise ValueError("this backend does not support text generation")
 
+    def _describe(self, payload: str, prompt: str, max_tokens: int) -> Generation:
+        raise ValueError("this backend does not support image-conditioned generation")
+
     def stop(self) -> None:
         """Signal shutdown without touching a socket from the calling thread."""
         self._stop_event.set()
@@ -82,6 +85,9 @@ class BaseModelServer(ABC, threading.Thread):
             elif request.operation == "generate":
                 assert request.prompt is not None  # validated by InferenceRequest
                 generation = self._generate(request.prompt, request.max_tokens)
+            elif request.operation == "describe":
+                assert request.prompt is not None  # validated by InferenceRequest
+                generation = self._describe(request.payload, request.prompt, request.max_tokens)
             return InferenceResponse(
                 request_id=request_id,
                 predictions=predictions,

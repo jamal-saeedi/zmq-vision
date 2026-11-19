@@ -14,7 +14,7 @@ MAX_GENERATION_TOKENS = 256
 
 @dataclass
 class InferenceRequest:
-    """Image inference, single-turn text generation, or readiness request."""
+    """Image inference, text or image-conditioned generation, or readiness."""
 
     payload: str = ""  # base64 encoded image; empty for ping
     request_id: str = field(default_factory=lambda: str(uuid.uuid4()))
@@ -34,12 +34,14 @@ class InferenceRequest:
             raise ValueError("request_id must be a nonempty string of at most 128 characters")
         if not isinstance(self.metadata, dict):
             raise ValueError("metadata must be a JSON object")
-        if self.operation not in ("infer", "ping", "generate"):
-            raise ValueError("operation must be infer, ping, or generate")
+        if self.operation not in ("infer", "ping", "generate", "describe"):
+            raise ValueError("operation must be infer, ping, generate, or describe")
         if self.operation == "infer" and not self.payload:
             raise ValueError("inference requires a nonempty payload")
-        if self.operation == "generate":
-            if self.payload:
+        if self.operation == "describe" and not self.payload:
+            raise ValueError("image-conditioned generation requires a nonempty payload")
+        if self.operation in ("generate", "describe"):
+            if self.operation == "generate" and self.payload:
                 raise ValueError("generation takes a text prompt and an empty image payload")
             if not isinstance(self.prompt, str) or not self.prompt.strip():
                 raise ValueError("prompt must be a nonempty string")
@@ -64,7 +66,7 @@ class InferenceRequest:
         }
         if self.operation != "infer":
             data["operation"] = self.operation
-        if self.operation == "generate":
+        if self.operation in ("generate", "describe"):
             data.update(prompt=self.prompt, max_tokens=self.max_tokens)
         return data
 

@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Test local image classifiers and language models over ZeroMQ.">
+  <title>ZMQ Inference · Model Workbench</title>
+  <link rel="stylesheet" href="/app.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header class="masthead">
+    <div class="masthead-inner">
+      <div class="wordmark">
+        <span class="mark" aria-hidden="true">Z</span>
+        <span>ZMQ Inference</span>
+      </div>
+      <div class="connection">
+        <output id="connection" role="status">Checking connection</output>
+        <button type="button" id="check">Check again</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="intro">
+      <h1>Model workbench</h1>
+      <p>Send a request to your local ZeroMQ server and inspect the response.</p>
+    </div>
+    <div class="workbench">
+      <form id="request" class="panel" autocomplete="off">
+        <h2>Request</h2>
+        <fieldset class="modes">
+          <legend>Task</legend>
+          <div class="mode-options">
+            <label><input type="radio" name="operation" value="infer" checked><span>Classify</span></label>
+            <label><input type="radio" name="operation" value="generate"><span>Generate</span></label>
+            <label><input type="radio" name="operation" value="describe"><span>Ask image</span></label>
+          </div>
+        </fieldset>
+
+        <section id="image-fields" aria-labelledby="image-label">
+          <p class="label" id="image-label">Image</p>
+          <div class="image-well">
+            <img id="preview" alt="Selected input image" hidden>
+            <p id="image-state">Choose a local image or use the sample.</p>
+          </div>
+          <div class="image-controls">
+            <label class="file-picker">
+              <input id="image" type="file" accept="image/*">
+              <span>Choose image</span>
+            </label>
+            <button type="button" id="sample">Use sample</button>
+          </div>
+        </section>
+
+        <section id="text-fields" hidden>
+          <label class="label" for="prompt">Prompt</label>
+          <textarea id="prompt" rows="3" placeholder="Enter a question or instruction"></textarea>
+          <label class="label token-label" for="tokens">Max output tokens</label>
+          <input id="tokens" type="number" min="1" max="256" value="64">
+        </section>
+
+        <button id="submit" class="primary" type="submit">Run classification</button>
+      </form>
+
+      <div class="result-stack">
+        <section class="panel response" aria-labelledby="response-title">
+          <h2 id="response-title">Response</h2>
+          <p id="status" role="status">Waiting for a request.</p>
+          <pre id="answer" hidden></pre>
+          <ol id="predictions" hidden></ol>
+          <dl id="metrics" hidden></dl>
+          <details id="details" hidden>
+            <summary>Raw response</summary>
+            <pre id="raw"></pre>
+          </details>
+        </section>
+        <section class="panel history" aria-labelledby="history-title">
+          <h2 id="history-title">Recent server times</h2>
+          <p id="history-empty">Run a request to start comparing response times.</p>
+          <ol id="history" hidden></ol>
+        </section>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

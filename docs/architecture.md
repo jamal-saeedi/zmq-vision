@@ -28,11 +28,17 @@ Text generation on the LLM backend:
 {"request_id":"example-3","operation":"generate","prompt":"Name a primary color.","max_tokens":24}
 ```
 
+`describe` adds a single base64 image to the generation request. Both operations return the same generation object.
+
+```json
+{"request_id":"example-4","operation":"describe","payload":"<base64 image>","prompt":"What is shown?","max_tokens":24}
+```
+
 ```json
 {"request_id":"example-3","predictions":[],"image":"","elapsed_ms":41,"error":null,"generation":{"text":"Red.","prompt_tokens":13,"completion_tokens":2,"finish_reason":"stop"}}
 ```
 
-`generation` is present only on a successful text response. The image and ping response schemas from 0.3 are unchanged. Requests are JSON objects with a nonempty string ID (maximum 128 characters) and optional object metadata. Omitting an ID generates a new one for older callers. The image payload is strict base64 and decodes to a Pillow-readable image. Generation accepts an optional empty image payload and a nonblank Unicode prompt. It limits the prompt to 8,192 UTF-8 bytes and `max_tokens` to 1–256, with a default of 64. The backend rejects requests whose formatted prompt plus output budget exceeds its context window.
+`generation` is present on successful `generate` and `describe` responses. Image classification and ping retain their earlier schemas. Requests are JSON objects with a nonempty string ID (maximum 128 characters) and optional object metadata. Omitting an ID generates a new one for older callers. The image payload is strict base64 and decodes to a Pillow-readable image. Both generation operations require a nonblank prompt of at most 8,192 UTF-8 bytes. `max_tokens` accepts 1–256 and defaults to 64. The LLM rejects a formatted prompt and output budget that exceed its context window. The VLM rejects prompts that exceed its context and caps generation at the space available after the image and text.
 
 `elapsed_ms` measures server work including image serialization or text generation. It excludes queueing and network round trips. Token usage comes from the runtime. The text finish reason is `stop` for a model stop token or stop sequence and `length` when the token budget is reached.
 
@@ -76,7 +82,11 @@ PyTorch uses `timm.data.resolve_model_data_config` and `create_transform` so inp
 
 One worker avoids concurrent access to a model by default. More workers share the model instance; the backend author must establish thread safety and memory requirements before increasing the count. This is not dynamic batching or a multi-process GPU scheduler.
 
-The LLM backend loads a local ChatML-compatible GGUF into one CPU context and defaults to two inference threads and a 2,048-token context. The server requires one model worker because llama.cpp keeps mutable state. The backend formats a single user message and returns one complete response. A client timeout or cancellation resets the client socket. The server may still finish generation.
+The LLM backend loads a local ChatML-compatible GGUF. The VLM backend loads a language GGUF and a matching MTMD projector, then uses the model's embedded chat template. Both run one worker with a mutable llama.cpp context, two CPU threads, and a 2,048-token context by default. The VLM decodes images within the normal pixel limit, then scales the longest side down to at most 512 pixels. It passes image bytes directly to the runtime. Both backends return one complete response per request. A client timeout or cancellation resets the client socket. The server may still finish generation.
+
+## Browser bridge
+
+`zmq-inference web` serves a packaged HTML dashboard on IPv4 loopback and forwards its typed requests via `SyncClient` to the chosen local ZeroMQ port. The HTTP bridge accepts one request at a time and limits JSON bodies to 8 MiB. It serves its own JavaScript and CSS, checks browser origins, and keeps recent timings in the current browser tab. `web --demo` starts a local RGB classifier with no download and shuts it down when the dashboard exits.
 
 ## Configuration
 
